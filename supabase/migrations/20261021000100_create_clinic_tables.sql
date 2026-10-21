@@ -293,3 +293,15 @@ CREATE TABLE public.visit_notes (
     CHECK (length(trim(symptoms)) > 0),
     CHECK (length(trim(diagnosis)) > 0)
 );
+
+CREATE INDEX idx_appointments_patient
+    ON public.appointments(patient_id);
+
+CREATE INDEX idx_appointments_physician_schedule
+    ON public.appointments(physician_id, scheduled_at);
+
+CREATE INDEX idx_appointments_status_schedule
+    ON public.appointments(status, scheduled_at);
+
+CREATE INDEX idx_visit_notes_physician
+    ON public.visit_notes(physician_id);
