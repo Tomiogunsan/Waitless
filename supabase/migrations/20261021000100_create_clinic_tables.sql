@@ -82,16 +82,20 @@ CREATE TABLE public.physician_schedule_exceptions (
 );
 
 -- 6. Appointments
+
 CREATE TABLE public.appointments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     reference_code TEXT NOT NULL UNIQUE
         DEFAULT (
             'CLN-' ||
-            upper(substr(
-                replace(gen_random_uuid()::TEXT, '-', ''),
-                1, 12
-            ))
+            upper(
+                substr(
+                    replace(gen_random_uuid()::TEXT, '-', ''),
+                    1,
+                    12
+                )
+            )
         ),
 
     patient_id UUID NOT NULL
@@ -101,12 +105,25 @@ CREATE TABLE public.appointments (
     physician_role TEXT NOT NULL DEFAULT 'physician'
         CHECK (physician_role = 'physician'),
 
+    -- Original booking time never changes.
     original_scheduled_at TIMESTAMPTZ NOT NULL,
+
+    -- Current planned appointment time.
     scheduled_at TIMESTAMPTZ NOT NULL,
 
+    -- Check-in and consultation timestamps.
     checked_in_at TIMESTAMPTZ,
     actual_started_at TIMESTAMPTZ,
     actual_ended_at TIMESTAMPTZ,
+
+    -- Cancellation audit fields.
+    cancelled_at TIMESTAMPTZ,
+    cancelled_by UUID REFERENCES public.staff(id),
+    cancellation_reason TEXT,
+
+    -- No-show audit fields.
+    no_show_at TIMESTAMPTZ,
+    no_show_by UUID REFERENCES public.staff(id),
 
     status TEXT NOT NULL DEFAULT 'scheduled'
         CHECK (
@@ -120,27 +137,117 @@ CREATE TABLE public.appointments (
             )
         ),
 
+    -- Human review for scheduling conflicts or delays.
     reschedule_needs_review BOOLEAN NOT NULL DEFAULT FALSE,
     reschedule_review_reason TEXT,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
+    -- Ensure the assigned staff member is a physician.
     FOREIGN KEY (physician_id, physician_role)
         REFERENCES public.staff(id, role),
 
+    -- Supports visit-note ownership by appointment and physician.
     UNIQUE (id, physician_id),
 
-    CHECK (
-        actual_ended_at IS NULL
-        OR actual_started_at IS NOT NULL
+    -- Consultation timestamps must be logically ordered.
+    CONSTRAINT appointments_timestamp_order_check CHECK (
+        (
+            actual_ended_at IS NULL
+            OR actual_started_at IS NOT NULL
+        )
+        AND
+        (
+            actual_started_at IS NULL
+            OR actual_ended_at IS NULL
+            OR actual_started_at < actual_ended_at
+        )
     ),
 
-    CHECK (
-        actual_started_at IS NULL
-        OR actual_ended_at IS NULL
-        OR actual_started_at < actual_ended_at
+    -- Required timestamps depend on appointment status.
+    CONSTRAINT appointments_status_timestamps_check CHECK (
+        CASE status
+            WHEN 'scheduled' THEN
+                checked_in_at IS NULL
+                AND actual_started_at IS NULL
+                AND actual_ended_at IS NULL
+
+            WHEN 'checked_in' THEN
+                checked_in_at IS NOT NULL
+                AND actual_started_at IS NULL
+                AND actual_ended_at IS NULL
+
+            WHEN 'in_progress' THEN
+                checked_in_at IS NOT NULL
+                AND actual_started_at IS NOT NULL
+                AND actual_ended_at IS NULL
+
+            WHEN 'completed' THEN
+                checked_in_at IS NOT NULL
+                AND actual_started_at IS NOT NULL
+                AND actual_ended_at IS NOT NULL
+
+            WHEN 'cancelled' THEN
+                actual_started_at IS NULL
+                AND actual_ended_at IS NULL
+
+            WHEN 'no_show' THEN
+                checked_in_at IS NULL
+                AND actual_started_at IS NULL
+                AND actual_ended_at IS NULL
+
+            ELSE FALSE
+        END
     ),
 
+    -- Cancellation details must match cancellation status.
+    CONSTRAINT appointments_cancellation_check CHECK (
+        (
+            status = 'cancelled'
+            AND cancelled_at IS NOT NULL
+            AND cancelled_by IS NOT NULL
+        )
+        OR
+        (
+            status <> 'cancelled'
+            AND cancelled_at IS NULL
+            AND cancelled_by IS NULL
+            AND cancellation_reason IS NULL
+        )
+    ),
+
+    -- No-show details must match no-show status.
+    CONSTRAINT appointments_no_show_check CHECK (
+        (
+            status = 'no_show'
+            AND no_show_at IS NOT NULL
+            AND no_show_by IS NOT NULL
+        )
+        OR
+        (
+            status <> 'no_show'
+            AND no_show_at IS NULL
+            AND no_show_by IS NULL
+        )
+    ),
+
+    -- Review flag and reason must be consistent.
+    CONSTRAINT appointments_reschedule_review_check CHECK (
+        (
+            reschedule_needs_review = TRUE
+            AND reschedule_review_reason IS NOT NULL
+            AND length(trim(reschedule_review_reason)) > 0
+        )
+        OR
+        (
+            reschedule_needs_review = FALSE
+            AND reschedule_review_reason IS NULL
+        )
+    ),
+
+    -- Reserve 40 minutes per active appointment.
+    -- Half-open intervals allow the next appointment to start
+    -- exactly when the previous reserved block ends.
     EXCLUDE USING gist (
         physician_id WITH =,
         tstzrange(
@@ -150,9 +257,14 @@ CREATE TABLE public.appointments (
         ) WITH &&
     )
     WHERE (
-        status IN ('scheduled', 'checked_in', 'in_progress')
+        status IN (
+            'scheduled',
+            'checked_in',
+            'in_progress'
+        )
     )
 );
+
 
 -- 7. Clinical visit notes
 CREATE TABLE public.visit_notes (
