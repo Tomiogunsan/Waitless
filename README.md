@@ -115,13 +115,24 @@ To run the Edge Functions: `supabase functions serve`.
 
 ```bash
 cd web
+cp .env.example .env.local   # then paste the publishable key from `supabase status`
 npm install
-npm run dev         # http://localhost:5173
+npm run dev                  # http://localhost:5173
 ```
 
 On the sign-in page, choose **Front desk**, **Physician** or **Admin** to explore each role.
 
-**Creating the first admin:** staff join by invitation from an admin, so the first admin is created by hand. In Studio, add a user under **Authentication → Users**, then run in the SQL Editor:
+**Demo data:** `supabase db reset` loads [`supabase/seed.sql`](supabase/seed.sql): staff, patients, a busy "today", upcoming bookings and 90 days of history. Every demo account uses the password `Waitless-demo-2026`:
+
+| Role | Email |
+|---|---|
+| Admin | `folake@waitless.health` |
+| Front desk | `chidinma@waitless.health` |
+| Physician | `adaeze@waitless.health` |
+
+Public booking demo: reference `CLN-7F3A9C21B4E8` with phone `0803 123 4567`.
+
+**In production**, staff join by invitation, so the first admin is created by hand: add a user under **Authentication → Users** in the Supabase dashboard, then run:
 
 ```sql
 INSERT INTO public.staff (id, full_name, role)

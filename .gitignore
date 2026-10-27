@@ -1,0 +1,5 @@
+# Dependencies (each app installs its own, e.g. web/node_modules)
+node_modules/
+
+# macOS
+.DS_Store

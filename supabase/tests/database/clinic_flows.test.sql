@@ -11,7 +11,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(61);
+SELECT plan(63);
 
 
 -- =========================================
@@ -76,17 +76,32 @@ VALUES (
 
 
 -- =========================================
+-- Setup: start from empty clinic tables so the results don't depend on
+-- supabase/seed.sql. Rolled back with everything else at the end.
+-- =========================================
+
+TRUNCATE
+    public.visit_notes,
+    public.appointments,
+    public.patient_medical_info,
+    public.patients,
+    public.physician_working_hours,
+    public.physician_schedule_exceptions,
+    public.staff;
+
+
+-- =========================================
 -- Setup: staff accounts
 -- =========================================
 
-INSERT INTO auth.users (id, email, aud, role)
+INSERT INTO auth.users (id, email, aud, role, email_confirmed_at)
 VALUES
-    ('00000000-0000-0000-0000-0000000000a1', 'admin1@test.local', 'authenticated', 'authenticated'),
-    ('00000000-0000-0000-0000-0000000000a2', 'admin2@test.local', 'authenticated', 'authenticated'),
-    ('00000000-0000-0000-0000-0000000000b1', 'desk1@test.local', 'authenticated', 'authenticated'),
-    ('00000000-0000-0000-0000-0000000000c1', 'doc1@test.local', 'authenticated', 'authenticated'),
-    ('00000000-0000-0000-0000-0000000000c2', 'doc2@test.local', 'authenticated', 'authenticated'),
-    ('00000000-0000-0000-0000-0000000000c3', 'doc3@test.local', 'authenticated', 'authenticated');
+    ('00000000-0000-0000-0000-0000000000a1', 'admin1@test.local', 'authenticated', 'authenticated', now()),
+    ('00000000-0000-0000-0000-0000000000a2', 'admin2@test.local', 'authenticated', 'authenticated', now()),
+    ('00000000-0000-0000-0000-0000000000b1', 'desk1@test.local', 'authenticated', 'authenticated', now()),
+    ('00000000-0000-0000-0000-0000000000c1', 'doc1@test.local', 'authenticated', 'authenticated', now()),
+    ('00000000-0000-0000-0000-0000000000c2', 'doc2@test.local', 'authenticated', 'authenticated', now()),
+    ('00000000-0000-0000-0000-0000000000c3', 'doc3@test.local', 'authenticated', 'authenticated', now());
 
 INSERT INTO public.staff (id, full_name, role, department_id)
 VALUES
@@ -152,6 +167,37 @@ SELECT ok(
           AND tablename = 'appointments'
     ),
     'Appointments are published to Supabase Realtime'
+);
+
+
+-- An invited physician who hasn't accepted yet: the only doctor in Paediatrics.
+INSERT INTO auth.users (id, email, aud, role)
+VALUES ('00000000-0000-0000-0000-0000000000c4', 'invited@test.local', 'authenticated', 'authenticated');
+
+INSERT INTO public.staff (id, full_name, role, department_id)
+VALUES ('00000000-0000-0000-0000-0000000000c4', 'Dr. Invited', 'physician',
+        (SELECT id FROM public.departments WHERE name = 'Paediatrics'));
+
+SELECT throws_ok(
+    $$INSERT INTO public.appointments (patient_id, physician_id, department_id, original_scheduled_at, scheduled_at)
+      VALUES (
+          (SELECT id FROM public.patients WHERE phone = '+2348011111111'),
+          '00000000-0000-0000-0000-0000000000c4',
+          (SELECT id FROM public.departments WHERE name = 'Paediatrics'),
+          tests.monday_at('08:40'),
+          tests.monday_at('08:40'))$$,
+    'P0001',
+    'This physician has not accepted their invite yet, so they cannot be booked',
+    'A physician who has not accepted their invite cannot be given appointments'
+);
+
+SELECT is(
+    (SELECT count(*) FROM public.get_available_slots(
+        (SELECT id FROM public.departments WHERE name = 'Paediatrics'),
+        (tests.monday_at('00:00') AT TIME ZONE 'Africa/Lagos')::DATE
+    )),
+    0::BIGINT,
+    'A department whose only physician is still invited offers no slots'
 );
 
 

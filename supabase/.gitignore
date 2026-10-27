@@ -4,5 +4,9 @@
 
 # dotenvx
 .env.keys
-.env.local
-.env.*.local
+.env
+.env
+
+# Edge Function secrets (e.g. STAFF_INVITE_REDIRECT_URL)
+.env
+functions/.env
