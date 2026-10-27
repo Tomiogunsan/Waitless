@@ -10,8 +10,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { DEPARTMENT_COLORS } from "@/lib/chart-colors";
-import { formatDate } from "@/lib/time";
+import { DEPARTMENT_COLORS } from "@/utils/chart-colors";
+import { formatDate } from "@/utils/time";
 import type { DailyStats } from "@/mocks/analytics";
 
 

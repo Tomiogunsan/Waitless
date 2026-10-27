@@ -1,4 +1,4 @@
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import type { IBadgeProp, IBadgeSize, IBadgeTone, IBadgeVariant } from "./interface";
 
 const STYLES: Record<IBadgeVariant, Record<IBadgeTone, string>> = {

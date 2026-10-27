@@ -1,8 +1,8 @@
 // Mock clinic data shaped exactly like the Supabase tables.
 // "Today" is a busy clinic morning; see lib/demo-clock.ts.
 
-import { DEMO_TODAY } from "@/lib/demo-clock";
-import { addDays, atClinicTime } from "@/lib/time";
+import { DEMO_TODAY } from "@/utils/demo-clock";
+import { addDays, atClinicTime } from "@/utils/time";
 import type {
   Appointment,
   AppointmentStatus,

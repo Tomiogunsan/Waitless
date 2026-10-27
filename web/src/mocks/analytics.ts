@@ -2,8 +2,8 @@
 // from the appointments table: counts per day per department, and average
 // wait time from checked_in_at to actual_started_at.
 
-import { DEMO_TODAY } from "@/lib/demo-clock";
-import { addDays, isClinicDay } from "@/lib/time";
+import { DEMO_TODAY } from "@/utils/demo-clock";
+import { addDays, isClinicDay } from "@/utils/time";
 import { departments } from "./clinic";
 
 /** Small seeded random generator so the charts are stable between reloads. */

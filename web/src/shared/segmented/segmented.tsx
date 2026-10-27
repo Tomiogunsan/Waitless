@@ -1,4 +1,4 @@
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import type { ISegmentedProp } from "./interface";
 
 /** A compact single-choice control, announced as a radio group. */

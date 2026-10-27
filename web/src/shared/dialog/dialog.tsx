@@ -1,6 +1,6 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import type { IDialogContentProp, IDialogFooterProp, IDialogSize } from "./interface";
 
 export const Dialog = DialogPrimitive.Root;

@@ -31,13 +31,13 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/dropdown/dropdown-menu";
 import Logo from "@/shared/logo/logo";
-import { cn } from "@/lib/cn";
-import { ROLE_LABELS } from "@/lib/format";
-import { ROLE_HOME, session, useRole } from "@/lib/session";
+import { cn } from "@/utils/cn";
+import { ROLE_LABELS } from "@/utils/format";
+import { ROLE_HOME, session, useRole } from "@/utils/session";
 import { CURRENT_USER, getStaff } from "@/mocks/clinic";
 import type { StaffRole } from "@/types/clinic";
 
-export const Route = createFileRoute("/_staff")({
+export const Route = createFileRoute("/_modules")({
   beforeLoad: ({ context }) => {
     if (!context.session.getRole()) throw redirect({ to: "/login" });
   },

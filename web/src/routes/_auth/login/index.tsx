@@ -1,13 +1,22 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { AlertTriangle, BarChart3, ChevronRight, ClipboardList, Eye, EyeOff, Stethoscope, type LucideIcon } from "lucide-react";
+import {
+  AlertTriangle,
+  BarChart3,
+  ChevronRight,
+  ClipboardList,
+  Eye,
+  EyeOff,
+  Stethoscope,
+  type LucideIcon,
+} from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import Button from "@/shared/button/button";
 import Field from "@/shared/form-field/form-field";
 import Input from "@/shared/input/input";
 import Alert from "@/shared/alert/alert";
-import { isValidEmail } from "@/lib/format";
-import { ROLE_HOME, session } from "@/lib/session";
+import { isValidEmail } from "@/utils/format";
+import { ROLE_HOME, session } from "@/utils/session";
 import { staff } from "@/mocks/clinic";
 import type { StaffRole } from "@/types/clinic";
 
@@ -19,10 +28,30 @@ export const Route = createFileRoute("/_auth/login/")({
   component: LoginPage,
 });
 
-const DEMO_ROLES: { role: StaffRole; title: string; description: string; icon: LucideIcon }[] = [
-  { role: "front_desk", title: "Front desk", description: "Live schedule, check-ins, patients", icon: ClipboardList },
-  { role: "physician", title: "Physician", description: "Patient queue and visit notes", icon: Stethoscope },
-  { role: "admin", title: "Admin", description: "Analytics and staff management", icon: BarChart3 },
+const DEMO_ROLES: {
+  role: StaffRole;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+}[] = [
+  {
+    role: "front_desk",
+    title: "Front desk",
+    description: "Live schedule, check-ins, patients",
+    icon: ClipboardList,
+  },
+  {
+    role: "physician",
+    title: "Physician",
+    description: "Patient queue and visit notes",
+    icon: Stethoscope,
+  },
+  {
+    role: "admin",
+    title: "Admin",
+    description: "Analytics and staff management",
+    icon: BarChart3,
+  },
 ];
 
 function LoginPage() {
@@ -49,20 +78,37 @@ function LoginPage() {
     window.setTimeout(() => {
       setLoading(false);
       const member = staff.find((s) => s.email === email.trim().toLowerCase());
-      if (!member) return setError("That email and password don't match an account.");
-      if (!member.is_active) return setError("This account has been deactivated. Contact your clinic admin.");
+      if (!member)
+        return setError("That email and password don't match an account.");
+      if (!member.is_active)
+        return setError(
+          "This account has been deactivated. Contact your clinic admin.",
+        );
       enterAs(member.role);
     }, 600);
   };
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Staff sign in</h1>
-      <p className="mt-1.5 text-sm text-slate-500">Welcome back. Sign in to see today's clinic.</p>
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+        Staff sign in
+      </h1>
+      <p className="mt-1.5 text-sm text-slate-500">
+        Welcome back. Sign in to see today's clinic.
+      </p>
 
       <form noValidate onSubmit={handleSubmit} className="mt-8 space-y-4">
         <Field label="Email">
-          {(a11y) => <Input {...a11y} type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@waitless.health" />}
+          {(a11y) => (
+            <Input
+              {...a11y}
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@waitless.health"
+            />
+          )}
         </Field>
         <Field label="Password">
           {(a11y) => (
@@ -81,7 +127,11 @@ function LoginPage() {
                 className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 hover:text-slate-600"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                {showPassword ? (
+                  <EyeOff className="size-4" />
+                ) : (
+                  <Eye className="size-4" />
+                )}
               </button>
             </div>
           )}
@@ -90,7 +140,11 @@ function LoginPage() {
           <button
             type="button"
             className="text-sm font-medium text-brand-600 hover:text-brand-700"
-            onClick={() => toast.info("Ask a clinic admin to resend your invite to reset your password.")}
+            onClick={() =>
+              toast.info(
+                "Ask a clinic admin to resend your invite to reset your password.",
+              )
+            }
           >
             Forgot password?
           </button>
@@ -119,10 +173,17 @@ function LoginPage() {
                 <Icon className="size-5" aria-hidden />
               </span>
               <span className="flex-1">
-                <span className="block text-sm font-semibold text-slate-900">{title}</span>
-                <span className="block text-xs text-slate-500">{description}</span>
+                <span className="block text-sm font-semibold text-slate-900">
+                  {title}
+                </span>
+                <span className="block text-xs text-slate-500">
+                  {description}
+                </span>
               </span>
-              <ChevronRight className="size-4 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-500" aria-hidden />
+              <ChevronRight
+                className="size-4 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-500"
+                aria-hidden
+              />
             </button>
           </li>
         ))}

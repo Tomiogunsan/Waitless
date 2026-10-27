@@ -19,19 +19,24 @@ import { toast } from "sonner";
 import Avatar from "@/shared/avatar/avatar";
 import Badge from "@/shared/badge/badge";
 import Button from "@/shared/button/button";
-import { Dialog, DialogClose, DialogContent, DialogFooter } from "@/shared/dialog/dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+} from "@/shared/dialog/dialog";
 import Field from "@/shared/form-field/form-field";
 import Input from "@/shared/input/input";
 import Select from "@/shared/select/select";
 import Alert from "@/shared/alert/alert";
 import PageHeader from "@/shared/page-header/page-header";
 import Segmented from "@/shared/segmented/segmented";
-import { cn } from "@/lib/cn";
-import { demoNow } from "@/lib/demo-clock";
-import { isValidEmail, pluralize, ROLE_LABELS } from "@/lib/format";
-import { requireRole } from "@/lib/guards";
-import { isActive, isPhysicianFree } from "@/lib/scheduling";
-import { formatDate } from "@/lib/time";
+import { cn } from "@/utils/cn";
+import { demoNow } from "@/utils/demo-clock";
+import { isValidEmail, pluralize, ROLE_LABELS } from "@/utils/format";
+import { requireRole } from "@/utils/guards";
+import { isActive, isPhysicianFree } from "@/utils/scheduling";
+import { formatDate } from "@/utils/time";
 import { CURRENT_USER, departments, getDepartment } from "@/mocks/clinic";
 import {
   appointmentStore,
@@ -44,7 +49,7 @@ import Table from "@/shared/table/table";
 import TableEmptyState from "@/shared/table/table-empty-state";
 import type { Staff, StaffRole } from "@/types/clinic";
 
-export const Route = createFileRoute("/_staff/admin/staff/")({
+export const Route = createFileRoute("/_modules/admin/staff/")({
   beforeLoad: ({ context }) => requireRole(context.session, ["admin"]),
   component: StaffPage,
 });
@@ -111,7 +116,8 @@ function StaffPage() {
       menuTitle: "Resend invite",
       icon: MailCheck,
       action: resendInvite,
-      hide: (member) => isMe(member) || !member.is_active || !member.invite_pending,
+      hide: (member) =>
+        isMe(member) || !member.is_active || !member.invite_pending,
     },
     {
       menuTitle: "Deactivate",
@@ -262,7 +268,9 @@ function StaffPage() {
         showMenu
         menuOptions={menuOptions}
         rowLabel={(member) => member.full_name}
-        rowClassName={(member) => (member.is_active ? undefined : "bg-slate-50/50")}
+        rowClassName={(member) =>
+          member.is_active ? undefined : "bg-slate-50/50"
+        }
         tableEmptyState={
           <TableEmptyState
             variant="no-results"

@@ -1,21 +1,15 @@
 import { ChevronLeft, ChevronRight, Coffee, Moon, Sun } from "lucide-react";
 import { useRef } from "react";
-import { cn } from "@/lib/cn";
-import { CLINIC_TZ, formatTime } from "@/lib/time";
-import type { Slot } from "@/types/clinic";
+import { cn } from "@/utils/cn";
+import { CLINIC_TZ, formatTime } from "@/utils/time";
+import type { IDateStripProp, ISlotGridProp, ISlotGroupProp } from "./interface";
 
 const weekday = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: "UTC" });
 const dayOfMonth = new Intl.DateTimeFormat("en-GB", { day: "numeric", timeZone: "UTC" });
 const month = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" });
 
-interface DateStripProps {
-  dates: string[];
-  value: string | null;
-  onChange: (date: string) => void;
-}
-
 /** Horizontally scrolling list of bookable clinic days. */
-export function DateStrip({ dates, value, onChange }: DateStripProps) {
+export function DateStrip({ dates, value, onChange }: IDateStripProp) {
   const scroller = useRef<HTMLDivElement>(null);
   const scrollBy = (direction: 1 | -1) =>
     scroller.current?.scrollBy({ left: direction * scroller.current.clientWidth * 0.8, behavior: "smooth" });
@@ -68,14 +62,8 @@ export function DateStrip({ dates, value, onChange }: DateStripProps) {
   );
 }
 
-interface SlotGridProps {
-  slots: Slot[];
-  value: string | null;
-  onChange: (slotAt: string) => void;
-}
-
 /** Morning and afternoon slots; taken ones are visibly disabled. */
-export function SlotGrid({ slots, value, onChange }: SlotGridProps) {
+export function SlotGrid({ slots, value, onChange }: ISlotGridProp) {
   const morning = slots.filter((s) => formatTime(s.slot_at) < "12:00");
   const afternoon = slots.filter((s) => formatTime(s.slot_at) >= "13:00");
   const available = slots.filter((s) => s.is_available).length;
@@ -103,7 +91,7 @@ function SlotGroup({
   slots,
   value,
   onChange,
-}: SlotGridProps & { icon: typeof Sun; label: string }) {
+}: ISlotGroupProp) {
   return (
     <fieldset>
       <legend className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-slate-500 uppercase">

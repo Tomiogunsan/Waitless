@@ -1,7 +1,7 @@
 import { AlertTriangle, Inbox, SearchX, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import EmptyState from "@/shared/empty-state/empty-state";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 
 export type TableEmptyStateVariant = "empty" | "no-results" | "error";
 

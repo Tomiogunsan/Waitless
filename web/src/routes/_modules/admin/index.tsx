@@ -1,17 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarCheck2, CheckCircle2, Download, Timer, UserX } from "lucide-react";
 import { useMemo, useState } from "react";
-import { AppointmentsChart, Legend, WaitTimeChart } from "@/components/admin/charts";
+import { AppointmentsChart, Legend, WaitTimeChart } from "@/routes/_modules/admin/-components/charts";
 import Button from "@/shared/button/button";
 import { Card, CardBody, CardHeader } from "@/shared/card/card";
 import Select from "@/shared/select/select";
 import PageHeader from "@/shared/page-header/page-header";
 import Segmented from "@/shared/segmented/segmented";
 import StatTile from "@/shared/stat-tile/stat-tile";
-import { DEPARTMENT_COLORS } from "@/lib/chart-colors";
-import { DEMO_TODAY } from "@/lib/demo-clock";
-import { requireRole } from "@/lib/guards";
-import { formatDate } from "@/lib/time";
+import { DEPARTMENT_COLORS } from "@/utils/chart-colors";
+import { DEMO_TODAY } from "@/utils/demo-clock";
+import { requireRole } from "@/utils/guards";
+import { formatDate } from "@/utils/time";
 import { RANGE_OPTIONS, statsForRange, summarize, type DailyStats, type RangeDays } from "@/mocks/analytics";
 import { departments } from "@/mocks/clinic";
 import type { ITableHead } from "@/shared/table/interface";
@@ -23,7 +23,7 @@ interface AnalyticsSearch {
   department: string;
 }
 
-export const Route = createFileRoute("/_staff/admin/")({
+export const Route = createFileRoute("/_modules/admin/")({
   beforeLoad: ({ context }) => requireRole(context.session, ["admin"]),
   validateSearch: (search: Record<string, unknown>): AnalyticsSearch => ({
     range: [7, 30, 90].includes(Number(search.range)) ? (Number(search.range) as RangeDays) : 30,

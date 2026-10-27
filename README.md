@@ -135,10 +135,10 @@ web/src/
 ├── routes/                # File-based routes (TanStack Router)
 │   ├── _public/           # Booking, confirmation, manage booking
 │   ├── _auth/             # Sign in, set password
-│   └── _staff/            # Front desk, physician, admin, patients
+│   └── _modules/          # Front desk, physician, admin, patients
 ├── shared/                # Reusable UI: one folder per component (interface.ts + component)
 ├── components/            # Feature components: booking, front-desk dialogs, charts
-├── lib/                   # Time zone, scheduling rules, session, guards
+├── utils/                 # Formatting, time zone, scheduling rules, session, guards
 ├── mocks/                 # Mock data shaped like the database tables
 └── types/                 # Types mirroring the Supabase schema
 

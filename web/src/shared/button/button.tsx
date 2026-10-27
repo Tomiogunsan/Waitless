@@ -1,5 +1,5 @@
 import { Loader2 } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import { buttonStyles } from "./button-styles";
 import type { IButtonProp } from "./interface";
 

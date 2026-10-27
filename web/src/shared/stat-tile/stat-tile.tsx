@@ -1,5 +1,5 @@
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import type { IStatTileProp } from "./interface";
 
 export default function StatTile({ label, value, icon: Icon, delta, hint, className }: IStatTileProp) {

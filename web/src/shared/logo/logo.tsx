@@ -1,4 +1,4 @@
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import type { ILogoProp } from "./interface";
 
 export default function Logo({ className, inverted = false }: ILogoProp) {

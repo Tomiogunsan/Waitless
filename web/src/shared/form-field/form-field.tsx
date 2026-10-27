@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import type { IFieldProp } from "./interface";
 
 /** Label, control, hint and error message, wired together for screen readers. */

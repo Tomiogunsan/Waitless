@@ -1,5 +1,5 @@
-import { cn } from "@/lib/cn";
-import { initials } from "@/lib/format";
+import { cn } from "@/utils/cn";
+import { initials } from "@/utils/format";
 import type { IAvatarProp, IAvatarSize } from "./interface";
 
 // Blue-family tints so avatars stay on brand while remaining distinguishable.

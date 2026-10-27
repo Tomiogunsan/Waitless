@@ -14,14 +14,18 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { DateStrip, SlotGrid } from "@/components/booking/slot-picker";
+import { DateStrip, SlotGrid } from "@/shared/slot-picker/slot-picker";
 import Button from "@/shared/button/button";
 import Field from "@/shared/form-field/form-field";
 import Input from "@/shared/input/input";
-import { cn } from "@/lib/cn";
-import { isValidEmail, isValidPhone, normalizePhone } from "@/lib/format";
-import { bookableDates, formatDate, formatTimeRange } from "@/lib/time";
-import { bookPublicAppointment, departmentSummaries, getAvailableSlots } from "@/mocks/public-booking";
+import { cn } from "@/utils/cn";
+import { isValidEmail, isValidPhone, normalizePhone } from "@/utils/format";
+import { bookableDates, formatDate, formatTimeRange } from "@/utils/time";
+import {
+  bookPublicAppointment,
+  departmentSummaries,
+  getAvailableSlots,
+} from "@/mocks/public-booking";
 
 // Department and date live in the URL, so a half-finished booking can be
 // shared or survive a refresh. TanStack Router validates and types them.
@@ -32,8 +36,12 @@ interface BookingSearch {
 
 export const Route = createFileRoute("/_public/")({
   validateSearch: (search: Record<string, unknown>): BookingSearch => ({
-    department: typeof search.department === "string" ? search.department : undefined,
-    date: typeof search.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(search.date) ? search.date : undefined,
+    department:
+      typeof search.department === "string" ? search.department : undefined,
+    date:
+      typeof search.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(search.date)
+        ? search.date
+        : undefined,
   }),
   component: BookingPage,
 });
@@ -49,19 +57,30 @@ function BookingPage() {
   const { department, date } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const dates = useMemo(() => bookableDates(), []);
-  const selectedDepartment = departmentSummaries.find((d) => d.id === department);
+  const selectedDepartment = departmentSummaries.find(
+    (d) => d.id === department,
+  );
   const selectedDate = date && dates.includes(date) ? date : null;
   const slots = useMemo(
-    () => (selectedDepartment && selectedDate ? getAvailableSlots(selectedDepartment.id, selectedDate) : []),
+    () =>
+      selectedDepartment && selectedDate
+        ? getAvailableSlots(selectedDepartment.id, selectedDate)
+        : [],
     [selectedDepartment, selectedDate],
   );
 
   const [slotAt, setSlotAt] = useState<string | null>(null);
-  const slotIsValid = slotAt !== null && slots.some((s) => s.slot_at === slotAt && s.is_available);
+  const slotIsValid =
+    slotAt !== null &&
+    slots.some((s) => s.slot_at === slotAt && s.is_available);
 
   const setSearch = (next: BookingSearch) => {
     setSlotAt(null);
-    void navigate({ search: (prev) => ({ ...prev, ...next }), replace: true, resetScroll: false });
+    void navigate({
+      search: (prev) => ({ ...prev, ...next }),
+      replace: true,
+      resetScroll: false,
+    });
   };
 
   return (
@@ -70,8 +89,16 @@ function BookingPage() {
 
       <div className="relative z-10 mx-auto -mt-16 grid max-w-6xl gap-6 px-4 pb-20 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-4">
-          <Step number={1} title="Choose a department" done={Boolean(selectedDepartment)}>
-            <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Department">
+          <Step
+            number={1}
+            title="Choose a department"
+            done={Boolean(selectedDepartment)}
+          >
+            <div
+              className="grid gap-3 sm:grid-cols-2"
+              role="radiogroup"
+              aria-label="Department"
+            >
               {departmentSummaries.map((d) => {
                 const Icon = DEPARTMENT_ICONS[d.id] ?? Stethoscope;
                 const selected = d.id === selectedDepartment?.id;
@@ -81,7 +108,12 @@ function BookingPage() {
                     type="button"
                     role="radio"
                     aria-checked={selected}
-                    onClick={() => setSearch({ department: d.id, date: selectedDate ?? dates[0] })}
+                    onClick={() =>
+                      setSearch({
+                        department: d.id,
+                        date: selectedDate ?? dates[0],
+                      })
+                    }
                     className={cn(
                       "group flex items-start gap-3 rounded-xl border p-4 text-left transition-all",
                       selected
@@ -92,7 +124,9 @@ function BookingPage() {
                     <span
                       className={cn(
                         "flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors",
-                        selected ? "bg-brand-600 text-white" : "bg-brand-50 text-brand-600 group-hover:bg-brand-100",
+                        selected
+                          ? "bg-brand-600 text-white"
+                          : "bg-brand-50 text-brand-600 group-hover:bg-brand-100",
                       )}
                     >
                       <Icon className="size-5" aria-hidden />
@@ -100,9 +134,16 @@ function BookingPage() {
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center justify-between gap-2 font-medium text-slate-900">
                         {d.name}
-                        {selected && <Check className="size-4 text-brand-600" aria-hidden />}
+                        {selected && (
+                          <Check
+                            className="size-4 text-brand-600"
+                            aria-hidden
+                          />
+                        )}
                       </span>
-                      <span className="mt-0.5 block text-sm leading-snug text-slate-500">{d.description}</span>
+                      <span className="mt-0.5 block text-sm leading-snug text-slate-500">
+                        {d.description}
+                      </span>
                     </span>
                   </button>
                 );
@@ -110,26 +151,54 @@ function BookingPage() {
             </div>
           </Step>
 
-          <Step number={2} title="Pick a date and time" done={slotIsValid} disabled={!selectedDepartment}>
+          <Step
+            number={2}
+            title="Pick a date and time"
+            done={slotIsValid}
+            disabled={!selectedDepartment}
+          >
             {selectedDepartment && (
               <div className="space-y-6">
-                <DateStrip dates={dates} value={selectedDate} onChange={(d) => setSearch({ date: d })} />
+                <DateStrip
+                  dates={dates}
+                  value={selectedDate}
+                  onChange={(d) => setSearch({ date: d })}
+                />
                 {selectedDate && (
                   <div>
-                    <h3 className="mb-3 text-sm font-medium text-slate-900">{formatDate(selectedDate)}</h3>
-                    <SlotGrid slots={slots} value={slotAt} onChange={setSlotAt} />
+                    <h3 className="mb-3 text-sm font-medium text-slate-900">
+                      {formatDate(selectedDate)}
+                    </h3>
+                    <SlotGrid
+                      slots={slots}
+                      value={slotAt}
+                      onChange={setSlotAt}
+                    />
                   </div>
                 )}
               </div>
             )}
           </Step>
 
-          <Step number={3} title="Your details" done={false} disabled={!slotIsValid}>
+          <Step
+            number={3}
+            title="Your details"
+            done={false}
+            disabled={!slotIsValid}
+          >
             {slotIsValid && selectedDepartment && (
               <DetailsForm
                 onSubmit={(details) => {
-                  const booking = bookPublicAppointment({ departmentId: selectedDepartment.id, slotAt: slotAt!, ...details });
-                  void navigate({ to: "/booking/$reference", params: { reference: booking.booking_reference }, search: {} });
+                  const booking = bookPublicAppointment({
+                    departmentId: selectedDepartment.id,
+                    slotAt: slotAt!,
+                    ...details,
+                  });
+                  void navigate({
+                    to: "/booking/$reference",
+                    params: { reference: booking.booking_reference },
+                    search: {},
+                  });
                 }}
               />
             )}
@@ -137,7 +206,10 @@ function BookingPage() {
         </div>
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <Summary departmentName={selectedDepartment?.name} slotAt={slotIsValid ? slotAt : null} />
+          <Summary
+            departmentName={selectedDepartment?.name}
+            slotAt={slotIsValid ? slotAt : null}
+          />
         </aside>
       </div>
     </>
@@ -164,11 +236,15 @@ function Hero() {
           See a doctor, not a waiting room.
         </h1>
         <p className="mt-4 max-w-xl text-lg text-brand-100">
-          Book a 40-minute appointment in under a minute. No account, no phone calls, and your place in the queue is
-          kept for you.
+          Book a 40-minute appointment in under a minute. No account, no phone
+          calls, and your place in the queue is kept for you.
         </p>
         <ul className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm text-brand-50">
-          {["No account needed", "Free to cancel or reschedule", "Doctors assigned automatically"].map((item) => (
+          {[
+            "No account needed",
+            "Free to cancel or reschedule",
+            "Doctors assigned automatically",
+          ].map((item) => (
             <li key={item} className="flex items-center gap-2">
               <span className="flex size-5 items-center justify-center rounded-full bg-white/15">
                 <Check className="size-3" aria-hidden />
@@ -203,11 +279,18 @@ function Step({
         disabled && "opacity-60",
       )}
     >
-      <h2 id={`step-${number}`} className="flex items-center gap-3 text-base font-semibold text-slate-900">
+      <h2
+        id={`step-${number}`}
+        className="flex items-center gap-3 text-base font-semibold text-slate-900"
+      >
         <span
           className={cn(
             "flex size-7 items-center justify-center rounded-full text-sm font-semibold transition-colors",
-            done ? "bg-emerald-500 text-white" : disabled ? "bg-slate-100 text-slate-400" : "bg-brand-600 text-white",
+            done
+              ? "bg-emerald-500 text-white"
+              : disabled
+                ? "bg-slate-100 text-slate-400"
+                : "bg-brand-600 text-white",
           )}
         >
           {done ? <Check className="size-4" aria-label="Done" /> : number}
@@ -226,14 +309,23 @@ interface Details {
 }
 
 function DetailsForm({ onSubmit }: { onSubmit: (details: Details) => void }) {
-  const [values, setValues] = useState<Details>({ fullName: "", phone: "", email: "" });
+  const [values, setValues] = useState<Details>({
+    fullName: "",
+    phone: "",
+    email: "",
+  });
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const errors = {
     fullName: values.fullName.trim() ? undefined : "Enter your full name",
-    phone: isValidPhone(values.phone) ? undefined : "Enter a valid phone number, e.g. 0803 123 4567",
-    email: !values.email || isValidEmail(values.email) ? undefined : "Enter a valid email address",
+    phone: isValidPhone(values.phone)
+      ? undefined
+      : "Enter a valid phone number, e.g. 0803 123 4567",
+    email:
+      !values.email || isValidEmail(values.email)
+        ? undefined
+        : "Enter a valid email address",
   };
   const hasErrors = Object.values(errors).some(Boolean);
   const show = (key: keyof Details) => (submitted ? errors[key] : undefined);
@@ -247,13 +339,22 @@ function DetailsForm({ onSubmit }: { onSubmit: (details: Details) => void }) {
     window.setTimeout(() => onSubmit(values), 700);
   };
 
-  const update = (key: keyof Details) => (event: { target: { value: string } }) =>
-    setValues((v) => ({ ...v, [key]: event.target.value }));
+  const update =
+    (key: keyof Details) => (event: { target: { value: string } }) =>
+      setValues((v) => ({ ...v, [key]: event.target.value }));
 
   return (
     <form noValidate onSubmit={handleSubmit} className="space-y-4">
       <Field label="Full name" error={show("fullName")}>
-        {(a11y) => <Input {...a11y} autoComplete="name" value={values.fullName} onChange={update("fullName")} placeholder="e.g. Amaka Obi" />}
+        {(a11y) => (
+          <Input
+            {...a11y}
+            autoComplete="name"
+            value={values.fullName}
+            onChange={update("fullName")}
+            placeholder="e.g. Amaka Obi"
+          />
+        )}
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
@@ -265,10 +366,29 @@ function DetailsForm({ onSubmit }: { onSubmit: (details: Details) => void }) {
               : "Returning patient? Use the same number as before."
           }
         >
-          {(a11y) => <Input {...a11y} type="tel" inputMode="tel" autoComplete="tel" value={values.phone} onChange={update("phone")} placeholder="0803 123 4567" />}
+          {(a11y) => (
+            <Input
+              {...a11y}
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={values.phone}
+              onChange={update("phone")}
+              placeholder="0803 123 4567"
+            />
+          )}
         </Field>
         <Field label="Email" optional error={show("email")}>
-          {(a11y) => <Input {...a11y} type="email" autoComplete="email" value={values.email} onChange={update("email")} placeholder="you@example.com" />}
+          {(a11y) => (
+            <Input
+              {...a11y}
+              type="email"
+              autoComplete="email"
+              value={values.email}
+              onChange={update("email")}
+              placeholder="you@example.com"
+            />
+          )}
         </Field>
       </div>
       <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
@@ -285,12 +405,30 @@ function DetailsForm({ onSubmit }: { onSubmit: (details: Details) => void }) {
   );
 }
 
-function Summary({ departmentName, slotAt }: { departmentName?: string; slotAt: string | null }) {
+function Summary({
+  departmentName,
+  slotAt,
+}: {
+  departmentName?: string;
+  slotAt: string | null;
+}) {
   const rows: { icon: LucideIcon; label: string; value: string | null }[] = [
     { icon: Stethoscope, label: "Department", value: departmentName ?? null },
-    { icon: CalendarCheck2, label: "Date", value: slotAt ? formatDate(slotAt) : null },
-    { icon: Clock, label: "Time", value: slotAt ? formatTimeRange(slotAt) : null },
-    { icon: UserRound, label: "Doctor", value: departmentName ? "First available, assigned for you" : null },
+    {
+      icon: CalendarCheck2,
+      label: "Date",
+      value: slotAt ? formatDate(slotAt) : null,
+    },
+    {
+      icon: Clock,
+      label: "Time",
+      value: slotAt ? formatTimeRange(slotAt) : null,
+    },
+    {
+      icon: UserRound,
+      label: "Doctor",
+      value: departmentName ? "First available, assigned for you" : null,
+    },
   ];
 
   return (
@@ -304,14 +442,22 @@ function Summary({ departmentName, slotAt }: { departmentName?: string; slotAt: 
             </span>
             <div className="min-w-0">
               <dt className="text-xs text-slate-500">{label}</dt>
-              <dd className={cn("text-sm font-medium", value ? "text-slate-900" : "text-slate-300")}>{value ?? "Not selected"}</dd>
+              <dd
+                className={cn(
+                  "text-sm font-medium",
+                  value ? "text-slate-900" : "text-slate-300",
+                )}
+              >
+                {value ?? "Not selected"}
+              </dd>
             </div>
           </div>
         ))}
       </dl>
       <div className="mt-5 rounded-xl bg-brand-50 p-3.5 text-xs leading-relaxed text-brand-900">
-        Arrive 10 minutes early and check in at the front desk. If your doctor is running late, later appointments are
-        moved automatically so you never wait long.
+        Arrive 10 minutes early and check in at the front desk. If your doctor
+        is running late, later appointments are moved automatically so you never
+        wait long.
       </div>
     </div>
   );

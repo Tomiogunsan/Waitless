@@ -4,8 +4,8 @@ import { Compass } from "lucide-react";
 import { Toaster } from "sonner";
 import { buttonStyles } from "@/shared/button/button-styles";
 import Logo from "@/shared/logo/logo";
-import { cn } from "@/lib/cn";
-import type { Session } from "@/lib/session";
+import { cn } from "@/utils/cn";
+import type { Session } from "@/utils/session";
 
 export interface RouterContext {
   queryClient: QueryClient;

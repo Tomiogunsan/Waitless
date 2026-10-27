@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/dropdown/dropdown-menu";
 import Input from "@/shared/input/input";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import type { IAlignType, ITableBody, ITableHead, ITableProp } from "./interface";
 import TableEmptyState from "./table-empty-state";
 import TableLoader from "./table-loader";

@@ -6,7 +6,7 @@ import { buttonStyles } from "@/shared/button/button-styles";
 import Field from "@/shared/form-field/form-field";
 import Input from "@/shared/input/input";
 import Badge from "@/shared/badge/badge";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 
 // Invite emails land here. The invite link signs the person in, and this
 // page calls supabase.auth.updateUser({ password }).

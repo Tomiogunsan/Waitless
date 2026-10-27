@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { Info, LogIn } from "lucide-react";
 import { buttonStyles } from "@/shared/button/button-styles";
 import Logo from "@/shared/logo/logo";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 
 export const Route = createFileRoute("/_public")({
   component: PublicLayout,

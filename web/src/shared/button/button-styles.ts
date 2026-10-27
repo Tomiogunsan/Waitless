@@ -1,4 +1,4 @@
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import type { IButtonSize, IButtonStyleProp, IButtonVariant } from "./interface";
 
 const VARIANTS: Record<IButtonVariant, string> = {

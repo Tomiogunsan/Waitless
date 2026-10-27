@@ -1,4 +1,4 @@
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import { controlStyles } from "@/shared/form-field/control-styles";
 import type { ITextareaProp } from "./interface";
 

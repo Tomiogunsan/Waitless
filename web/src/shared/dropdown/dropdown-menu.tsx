@@ -1,5 +1,5 @@
 import * as Menu from "@radix-ui/react-dropdown-menu";
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import type {
   IDropdownMenuContentProp,
   IDropdownMenuItemProp,

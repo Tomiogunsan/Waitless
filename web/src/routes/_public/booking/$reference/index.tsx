@@ -16,9 +16,9 @@ import { useState } from "react";
 import Button from "@/shared/button/button";
 import { buttonStyles } from "@/shared/button/button-styles";
 import EmptyState from "@/shared/empty-state/empty-state";
-import { cn } from "@/lib/cn";
-import { formatPhone } from "@/lib/format";
-import { APPOINTMENT_MINUTES, formatDate, formatTimeRange } from "@/lib/time";
+import { cn } from "@/utils/cn";
+import { formatPhone } from "@/utils/format";
+import { APPOINTMENT_MINUTES, formatDate, formatTimeRange } from "@/utils/time";
 import { getBooking } from "@/mocks/public-booking";
 
 export const Route = createFileRoute("/_public/booking/$reference/")({
@@ -45,8 +45,16 @@ export const Route = createFileRoute("/_public/booking/$reference/")({
 });
 
 /** Builds a calendar file so patients can save the appointment. */
-function downloadCalendarFile(reference: string, start: string, department: string) {
-  const toIcs = (date: Date) => date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+function downloadCalendarFile(
+  reference: string,
+  start: string,
+  department: string,
+) {
+  const toIcs = (date: Date) =>
+    date
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d{3}/, "");
   const from = new Date(start);
   const to = new Date(from.getTime() + APPOINTMENT_MINUTES * 60_000);
   const ics = [
@@ -64,7 +72,10 @@ function downloadCalendarFile(reference: string, start: string, department: stri
     "END:VCALENDAR",
   ].join("\r\n");
   const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
-  const link = Object.assign(document.createElement("a"), { href: url, download: `waitless-${reference}.ics` });
+  const link = Object.assign(document.createElement("a"), {
+    href: url,
+    download: `waitless-${reference}.ics`,
+  });
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -86,10 +97,26 @@ function ConfirmationPage() {
   const details = [
     { icon: Stethoscope, label: "Department", value: booking.department_name },
     { icon: UserRound, label: "Doctor", value: booking.physician_name },
-    { icon: CalendarCheck2, label: "Date", value: formatDate(booking.appointment_time) },
-    { icon: Clock, label: "Time", value: formatTimeRange(booking.appointment_time) },
-    { icon: IdCard, label: "Booked for", value: `${booking.patient_name} · ${formatPhone(booking.phone)}` },
-    { icon: MapPin, label: "Where", value: "Waitless Clinic, 14 Admiralty Way, Lekki, Lagos" },
+    {
+      icon: CalendarCheck2,
+      label: "Date",
+      value: formatDate(booking.appointment_time),
+    },
+    {
+      icon: Clock,
+      label: "Time",
+      value: formatTimeRange(booking.appointment_time),
+    },
+    {
+      icon: IdCard,
+      label: "Booked for",
+      value: `${booking.patient_name} · ${formatPhone(booking.phone)}`,
+    },
+    {
+      icon: MapPin,
+      label: "Where",
+      value: "Waitless Clinic, 14 Admiralty Way, Lekki, Lagos",
+    },
   ];
 
   return (
@@ -102,17 +129,31 @@ function ConfirmationPage() {
               <Check className="size-8" strokeWidth={3} aria-hidden />
             </span>
           </span>
-          <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900">You're booked in</h1>
-          <p className="mt-2 text-slate-500">Keep your reference code. You'll need it with your phone number to make changes.</p>
+          <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900">
+            You're booked in
+          </h1>
+          <p className="mt-2 text-slate-500">
+            Keep your reference code. You'll need it with your phone number to
+            make changes.
+          </p>
         </div>
 
         <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-card">
           <div className="flex flex-col items-center gap-3 border-b border-dashed border-slate-200 bg-brand-600 px-6 py-6 text-white sm:flex-row sm:justify-between">
             <div className="text-center sm:text-left">
-              <p className="text-xs font-medium tracking-wide text-brand-100 uppercase">Booking reference</p>
-              <p className="mt-1 font-mono text-2xl font-semibold tracking-wider">{booking.booking_reference}</p>
+              <p className="text-xs font-medium tracking-wide text-brand-100 uppercase">
+                Booking reference
+              </p>
+              <p className="mt-1 font-mono text-2xl font-semibold tracking-wider">
+                {booking.booking_reference}
+              </p>
             </div>
-            <Button variant="secondary" size="sm" onClick={copyReference} aria-live="polite">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={copyReference}
+              aria-live="polite"
+            >
               {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
               {copied ? "Copied" : "Copy code"}
             </Button>
@@ -121,10 +162,15 @@ function ConfirmationPage() {
           <dl className="grid gap-x-6 gap-y-5 p-6 sm:grid-cols-2">
             {details.map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex gap-3">
-                <Icon className="mt-0.5 size-5 shrink-0 text-brand-500" aria-hidden />
+                <Icon
+                  className="mt-0.5 size-5 shrink-0 text-brand-500"
+                  aria-hidden
+                />
                 <div>
                   <dt className="text-xs text-slate-500">{label}</dt>
-                  <dd className="text-sm font-medium text-slate-900">{value}</dd>
+                  <dd className="text-sm font-medium text-slate-900">
+                    {value}
+                  </dd>
                 </div>
               </div>
             ))}
@@ -134,7 +180,13 @@ function ConfirmationPage() {
             <Button
               variant="primary"
               className="sm:flex-1"
-              onClick={() => downloadCalendarFile(booking.booking_reference, booking.appointment_time, booking.department_name)}
+              onClick={() =>
+                downloadCalendarFile(
+                  booking.booking_reference,
+                  booking.appointment_time,
+                  booking.department_name,
+                )
+              }
             >
               <CalendarPlus aria-hidden />
               Add to calendar
@@ -142,7 +194,10 @@ function ConfirmationPage() {
             <Link
               to="/manage"
               search={{ ref: booking.booking_reference }}
-              className={cn(buttonStyles({ variant: "secondary" }), "sm:flex-1")}
+              className={cn(
+                buttonStyles({ variant: "secondary" }),
+                "sm:flex-1",
+              )}
             >
               Reschedule or cancel
             </Link>
@@ -161,7 +216,10 @@ function ConfirmationPage() {
               "If your doctor is running late, your time may move slightly. Check here for the latest time.",
             ].map((tip) => (
               <li key={tip} className="flex gap-2">
-                <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" aria-hidden />
+                <Check
+                  className="mt-0.5 size-4 shrink-0 text-emerald-500"
+                  aria-hidden
+                />
                 {tip}
               </li>
             ))}

@@ -1,4 +1,4 @@
-import { cn } from "@/lib/cn";
+import { cn } from "@/utils/cn";
 import type { ICardBodyProp, ICardHeaderProp, ICardProp } from "./interface";
 
 export function Card({ className, ...props }: ICardProp) {

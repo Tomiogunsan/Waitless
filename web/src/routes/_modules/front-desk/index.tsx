@@ -16,13 +16,13 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { StatusBadge } from "@/components/appointment-status";
+import { StatusBadge } from "@/shared/badge/appointment-status-badge";
 import {
   CancelAppointmentDialog,
   NewAppointmentDialog,
   ReassignDialog,
   RescheduleDialog,
-} from "@/components/front-desk/dialogs";
+} from "@/routes/_modules/front-desk/-components/dialogs";
 import Avatar from "@/shared/avatar/avatar";
 import Button from "@/shared/button/button";
 import Select from "@/shared/select/select";
@@ -32,18 +32,18 @@ import LiveIndicator from "@/shared/live-indicator/live-indicator";
 import PageHeader from "@/shared/page-header/page-header";
 import Segmented from "@/shared/segmented/segmented";
 import StatTile from "@/shared/stat-tile/stat-tile";
-import { cn } from "@/lib/cn";
-import { DEMO_TODAY, demoNow, useDemoNow } from "@/lib/demo-clock";
-import { formatPhone } from "@/lib/format";
-import { requireRole } from "@/lib/guards";
-import { isOnDate, newReferenceCode } from "@/lib/scheduling";
+import { cn } from "@/utils/cn";
+import { DEMO_TODAY, demoNow, useDemoNow } from "@/utils/demo-clock";
+import { formatPhone } from "@/utils/format";
+import { requireRole } from "@/utils/guards";
+import { isOnDate, newReferenceCode } from "@/utils/scheduling";
 import {
   atClinicTime,
   formatDate,
   formatDuration,
   formatTime,
   minutesBetween,
-} from "@/lib/time";
+} from "@/utils/time";
 import { getDepartment, getStaff, physicians } from "@/mocks/clinic";
 import { appointmentStore, patientStore, useAppointments } from "@/mocks/store";
 import type { ITableHead, ITableMenuOption } from "@/shared/table/interface";
@@ -51,7 +51,7 @@ import Table from "@/shared/table/table";
 import TableEmptyState from "@/shared/table/table-empty-state";
 import type { Appointment, AppointmentStatus } from "@/types/clinic";
 
-export const Route = createFileRoute("/_staff/front-desk/")({
+export const Route = createFileRoute("/_modules/front-desk/")({
   beforeLoad: ({ context }) =>
     requireRole(context.session, ["front_desk", "admin"]),
   component: FrontDeskPage,
@@ -68,7 +68,9 @@ const FILTER_STATUSES: Record<Filter, AppointmentStatus[] | null> = {
 };
 
 const isDone = (a: Appointment) =>
-  a.status === "completed" || a.status === "cancelled" || a.status === "no_show";
+  a.status === "completed" ||
+  a.status === "cancelled" ||
+  a.status === "no_show";
 
 type DialogState = {
   kind: "reassign" | "reschedule" | "cancel";

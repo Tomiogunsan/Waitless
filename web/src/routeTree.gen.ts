@@ -10,31 +10,31 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
+import { Route as ModulesRouteRouteImport } from './routes/_modules/route'
 import { Route as PublicRouteRouteImport } from './routes/_public/route'
-import { Route as StaffRouteRouteImport } from './routes/_staff/route'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
 import { Route as AuthLoginIndexRouteImport } from './routes/_auth/login/index'
 import { Route as AuthSetPasswordIndexRouteImport } from './routes/_auth/set-password/index'
+import { Route as ModulesAdminIndexRouteImport } from './routes/_modules/admin/index'
+import { Route as ModulesFrontDeskIndexRouteImport } from './routes/_modules/front-desk/index'
+import { Route as ModulesPatientsIndexRouteImport } from './routes/_modules/patients/index'
+import { Route as ModulesPhysicianIndexRouteImport } from './routes/_modules/physician/index'
 import { Route as PublicManageIndexRouteImport } from './routes/_public/manage/index'
-import { Route as StaffAdminIndexRouteImport } from './routes/_staff/admin/index'
-import { Route as StaffFrontDeskIndexRouteImport } from './routes/_staff/front-desk/index'
-import { Route as StaffPatientsIndexRouteImport } from './routes/_staff/patients/index'
-import { Route as StaffPhysicianIndexRouteImport } from './routes/_staff/physician/index'
+import { Route as ModulesAdminStaffIndexRouteImport } from './routes/_modules/admin/staff/index'
+import { Route as ModulesPatientsPatientIdIndexRouteImport } from './routes/_modules/patients/$patientId/index'
 import { Route as PublicBookingReferenceIndexRouteImport } from './routes/_public/booking/$reference/index'
-import { Route as StaffAdminStaffIndexRouteImport } from './routes/_staff/admin/staff/index'
-import { Route as StaffPatientsPatientIdIndexRouteImport } from './routes/_staff/patients/$patientId/index'
-import { Route as StaffPhysicianConsultationAppointmentIdIndexRouteImport } from './routes/_staff/physician/consultation/$appointmentId/index'
+import { Route as ModulesPhysicianConsultationAppointmentIdIndexRouteImport } from './routes/_modules/physician/consultation/$appointmentId/index'
 
 const AuthRouteRoute = AuthRouteRouteImport.update({
   id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PublicRouteRoute = PublicRouteRouteImport.update({
-  id: '/_public',
+const ModulesRouteRoute = ModulesRouteRouteImport.update({
+  id: '/_modules',
   getParentRoute: () => rootRouteImport,
 } as any)
-const StaffRouteRoute = StaffRouteRouteImport.update({
-  id: '/_staff',
+const PublicRouteRoute = PublicRouteRouteImport.update({
+  id: '/_public',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PublicIndexRoute = PublicIndexRouteImport.update({
@@ -52,100 +52,100 @@ const AuthSetPasswordIndexRoute = AuthSetPasswordIndexRouteImport.update({
   path: '/set-password/',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const ModulesAdminIndexRoute = ModulesAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => ModulesRouteRoute,
+} as any)
+const ModulesFrontDeskIndexRoute = ModulesFrontDeskIndexRouteImport.update({
+  id: '/front-desk/',
+  path: '/front-desk/',
+  getParentRoute: () => ModulesRouteRoute,
+} as any)
+const ModulesPatientsIndexRoute = ModulesPatientsIndexRouteImport.update({
+  id: '/patients/',
+  path: '/patients/',
+  getParentRoute: () => ModulesRouteRoute,
+} as any)
+const ModulesPhysicianIndexRoute = ModulesPhysicianIndexRouteImport.update({
+  id: '/physician/',
+  path: '/physician/',
+  getParentRoute: () => ModulesRouteRoute,
+} as any)
 const PublicManageIndexRoute = PublicManageIndexRouteImport.update({
   id: '/manage/',
   path: '/manage/',
   getParentRoute: () => PublicRouteRoute,
 } as any)
-const StaffAdminIndexRoute = StaffAdminIndexRouteImport.update({
-  id: '/admin/',
-  path: '/admin/',
-  getParentRoute: () => StaffRouteRoute,
+const ModulesAdminStaffIndexRoute = ModulesAdminStaffIndexRouteImport.update({
+  id: '/admin/staff/',
+  path: '/admin/staff/',
+  getParentRoute: () => ModulesRouteRoute,
 } as any)
-const StaffFrontDeskIndexRoute = StaffFrontDeskIndexRouteImport.update({
-  id: '/front-desk/',
-  path: '/front-desk/',
-  getParentRoute: () => StaffRouteRoute,
-} as any)
-const StaffPatientsIndexRoute = StaffPatientsIndexRouteImport.update({
-  id: '/patients/',
-  path: '/patients/',
-  getParentRoute: () => StaffRouteRoute,
-} as any)
-const StaffPhysicianIndexRoute = StaffPhysicianIndexRouteImport.update({
-  id: '/physician/',
-  path: '/physician/',
-  getParentRoute: () => StaffRouteRoute,
-} as any)
+const ModulesPatientsPatientIdIndexRoute =
+  ModulesPatientsPatientIdIndexRouteImport.update({
+    id: '/patients/$patientId/',
+    path: '/patients/$patientId/',
+    getParentRoute: () => ModulesRouteRoute,
+  } as any)
 const PublicBookingReferenceIndexRoute =
   PublicBookingReferenceIndexRouteImport.update({
     id: '/booking/$reference/',
     path: '/booking/$reference/',
     getParentRoute: () => PublicRouteRoute,
   } as any)
-const StaffAdminStaffIndexRoute = StaffAdminStaffIndexRouteImport.update({
-  id: '/admin/staff/',
-  path: '/admin/staff/',
-  getParentRoute: () => StaffRouteRoute,
-} as any)
-const StaffPatientsPatientIdIndexRoute =
-  StaffPatientsPatientIdIndexRouteImport.update({
-    id: '/patients/$patientId/',
-    path: '/patients/$patientId/',
-    getParentRoute: () => StaffRouteRoute,
-  } as any)
-const StaffPhysicianConsultationAppointmentIdIndexRoute =
-  StaffPhysicianConsultationAppointmentIdIndexRouteImport.update({
+const ModulesPhysicianConsultationAppointmentIdIndexRoute =
+  ModulesPhysicianConsultationAppointmentIdIndexRouteImport.update({
     id: '/physician/consultation/$appointmentId/',
     path: '/physician/consultation/$appointmentId/',
-    getParentRoute: () => StaffRouteRoute,
+    getParentRoute: () => ModulesRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
   '/login/': typeof AuthLoginIndexRoute
   '/set-password/': typeof AuthSetPasswordIndexRoute
+  '/admin/': typeof ModulesAdminIndexRoute
+  '/front-desk/': typeof ModulesFrontDeskIndexRoute
+  '/patients/': typeof ModulesPatientsIndexRoute
+  '/physician/': typeof ModulesPhysicianIndexRoute
   '/manage/': typeof PublicManageIndexRoute
-  '/admin/': typeof StaffAdminIndexRoute
-  '/front-desk/': typeof StaffFrontDeskIndexRoute
-  '/patients/': typeof StaffPatientsIndexRoute
-  '/physician/': typeof StaffPhysicianIndexRoute
+  '/admin/staff/': typeof ModulesAdminStaffIndexRoute
+  '/patients/$patientId/': typeof ModulesPatientsPatientIdIndexRoute
   '/booking/$reference/': typeof PublicBookingReferenceIndexRoute
-  '/admin/staff/': typeof StaffAdminStaffIndexRoute
-  '/patients/$patientId/': typeof StaffPatientsPatientIdIndexRoute
-  '/physician/consultation/$appointmentId/': typeof StaffPhysicianConsultationAppointmentIdIndexRoute
+  '/physician/consultation/$appointmentId/': typeof ModulesPhysicianConsultationAppointmentIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
   '/login': typeof AuthLoginIndexRoute
   '/set-password': typeof AuthSetPasswordIndexRoute
+  '/admin': typeof ModulesAdminIndexRoute
+  '/front-desk': typeof ModulesFrontDeskIndexRoute
+  '/patients': typeof ModulesPatientsIndexRoute
+  '/physician': typeof ModulesPhysicianIndexRoute
   '/manage': typeof PublicManageIndexRoute
-  '/admin': typeof StaffAdminIndexRoute
-  '/front-desk': typeof StaffFrontDeskIndexRoute
-  '/patients': typeof StaffPatientsIndexRoute
-  '/physician': typeof StaffPhysicianIndexRoute
+  '/admin/staff': typeof ModulesAdminStaffIndexRoute
+  '/patients/$patientId': typeof ModulesPatientsPatientIdIndexRoute
   '/booking/$reference': typeof PublicBookingReferenceIndexRoute
-  '/admin/staff': typeof StaffAdminStaffIndexRoute
-  '/patients/$patientId': typeof StaffPatientsPatientIdIndexRoute
-  '/physician/consultation/$appointmentId': typeof StaffPhysicianConsultationAppointmentIdIndexRoute
+  '/physician/consultation/$appointmentId': typeof ModulesPhysicianConsultationAppointmentIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteRouteWithChildren
+  '/_modules': typeof ModulesRouteRouteWithChildren
   '/_public': typeof PublicRouteRouteWithChildren
-  '/_staff': typeof StaffRouteRouteWithChildren
   '/_public/': typeof PublicIndexRoute
   '/_auth/login/': typeof AuthLoginIndexRoute
   '/_auth/set-password/': typeof AuthSetPasswordIndexRoute
+  '/_modules/admin/': typeof ModulesAdminIndexRoute
+  '/_modules/front-desk/': typeof ModulesFrontDeskIndexRoute
+  '/_modules/patients/': typeof ModulesPatientsIndexRoute
+  '/_modules/physician/': typeof ModulesPhysicianIndexRoute
   '/_public/manage/': typeof PublicManageIndexRoute
-  '/_staff/admin/': typeof StaffAdminIndexRoute
-  '/_staff/front-desk/': typeof StaffFrontDeskIndexRoute
-  '/_staff/patients/': typeof StaffPatientsIndexRoute
-  '/_staff/physician/': typeof StaffPhysicianIndexRoute
+  '/_modules/admin/staff/': typeof ModulesAdminStaffIndexRoute
+  '/_modules/patients/$patientId/': typeof ModulesPatientsPatientIdIndexRoute
   '/_public/booking/$reference/': typeof PublicBookingReferenceIndexRoute
-  '/_staff/admin/staff/': typeof StaffAdminStaffIndexRoute
-  '/_staff/patients/$patientId/': typeof StaffPatientsPatientIdIndexRoute
-  '/_staff/physician/consultation/$appointmentId/': typeof StaffPhysicianConsultationAppointmentIdIndexRoute
+  '/_modules/physician/consultation/$appointmentId/': typeof ModulesPhysicianConsultationAppointmentIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -153,52 +153,52 @@ export interface FileRouteTypes {
     | '/'
     | '/login/'
     | '/set-password/'
-    | '/manage/'
     | '/admin/'
     | '/front-desk/'
     | '/patients/'
     | '/physician/'
-    | '/booking/$reference/'
+    | '/manage/'
     | '/admin/staff/'
     | '/patients/$patientId/'
+    | '/booking/$reference/'
     | '/physician/consultation/$appointmentId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/set-password'
-    | '/manage'
     | '/admin'
     | '/front-desk'
     | '/patients'
     | '/physician'
-    | '/booking/$reference'
+    | '/manage'
     | '/admin/staff'
     | '/patients/$patientId'
+    | '/booking/$reference'
     | '/physician/consultation/$appointmentId'
   id:
     | '__root__'
     | '/_auth'
+    | '/_modules'
     | '/_public'
-    | '/_staff'
     | '/_public/'
     | '/_auth/login/'
     | '/_auth/set-password/'
+    | '/_modules/admin/'
+    | '/_modules/front-desk/'
+    | '/_modules/patients/'
+    | '/_modules/physician/'
     | '/_public/manage/'
-    | '/_staff/admin/'
-    | '/_staff/front-desk/'
-    | '/_staff/patients/'
-    | '/_staff/physician/'
+    | '/_modules/admin/staff/'
+    | '/_modules/patients/$patientId/'
     | '/_public/booking/$reference/'
-    | '/_staff/admin/staff/'
-    | '/_staff/patients/$patientId/'
-    | '/_staff/physician/consultation/$appointmentId/'
+    | '/_modules/physician/consultation/$appointmentId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
+  ModulesRouteRoute: typeof ModulesRouteRouteWithChildren
   PublicRouteRoute: typeof PublicRouteRouteWithChildren
-  StaffRouteRoute: typeof StaffRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -210,18 +210,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_modules': {
+      id: '/_modules'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ModulesRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_public': {
       id: '/_public'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof PublicRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_staff': {
-      id: '/_staff'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof StaffRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_public/': {
@@ -245,6 +245,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSetPasswordIndexRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/_modules/admin/': {
+      id: '/_modules/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof ModulesAdminIndexRouteImport
+      parentRoute: typeof ModulesRouteRoute
+    }
+    '/_modules/front-desk/': {
+      id: '/_modules/front-desk/'
+      path: '/front-desk'
+      fullPath: '/front-desk/'
+      preLoaderRoute: typeof ModulesFrontDeskIndexRouteImport
+      parentRoute: typeof ModulesRouteRoute
+    }
+    '/_modules/patients/': {
+      id: '/_modules/patients/'
+      path: '/patients'
+      fullPath: '/patients/'
+      preLoaderRoute: typeof ModulesPatientsIndexRouteImport
+      parentRoute: typeof ModulesRouteRoute
+    }
+    '/_modules/physician/': {
+      id: '/_modules/physician/'
+      path: '/physician'
+      fullPath: '/physician/'
+      preLoaderRoute: typeof ModulesPhysicianIndexRouteImport
+      parentRoute: typeof ModulesRouteRoute
+    }
     '/_public/manage/': {
       id: '/_public/manage/'
       path: '/manage'
@@ -252,33 +280,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicManageIndexRouteImport
       parentRoute: typeof PublicRouteRoute
     }
-    '/_staff/admin/': {
-      id: '/_staff/admin/'
-      path: '/admin'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof StaffAdminIndexRouteImport
-      parentRoute: typeof StaffRouteRoute
+    '/_modules/admin/staff/': {
+      id: '/_modules/admin/staff/'
+      path: '/admin/staff'
+      fullPath: '/admin/staff/'
+      preLoaderRoute: typeof ModulesAdminStaffIndexRouteImport
+      parentRoute: typeof ModulesRouteRoute
     }
-    '/_staff/front-desk/': {
-      id: '/_staff/front-desk/'
-      path: '/front-desk'
-      fullPath: '/front-desk/'
-      preLoaderRoute: typeof StaffFrontDeskIndexRouteImport
-      parentRoute: typeof StaffRouteRoute
-    }
-    '/_staff/patients/': {
-      id: '/_staff/patients/'
-      path: '/patients'
-      fullPath: '/patients/'
-      preLoaderRoute: typeof StaffPatientsIndexRouteImport
-      parentRoute: typeof StaffRouteRoute
-    }
-    '/_staff/physician/': {
-      id: '/_staff/physician/'
-      path: '/physician'
-      fullPath: '/physician/'
-      preLoaderRoute: typeof StaffPhysicianIndexRouteImport
-      parentRoute: typeof StaffRouteRoute
+    '/_modules/patients/$patientId/': {
+      id: '/_modules/patients/$patientId/'
+      path: '/patients/$patientId'
+      fullPath: '/patients/$patientId/'
+      preLoaderRoute: typeof ModulesPatientsPatientIdIndexRouteImport
+      parentRoute: typeof ModulesRouteRoute
     }
     '/_public/booking/$reference/': {
       id: '/_public/booking/$reference/'
@@ -287,26 +301,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicBookingReferenceIndexRouteImport
       parentRoute: typeof PublicRouteRoute
     }
-    '/_staff/admin/staff/': {
-      id: '/_staff/admin/staff/'
-      path: '/admin/staff'
-      fullPath: '/admin/staff/'
-      preLoaderRoute: typeof StaffAdminStaffIndexRouteImport
-      parentRoute: typeof StaffRouteRoute
-    }
-    '/_staff/patients/$patientId/': {
-      id: '/_staff/patients/$patientId/'
-      path: '/patients/$patientId'
-      fullPath: '/patients/$patientId/'
-      preLoaderRoute: typeof StaffPatientsPatientIdIndexRouteImport
-      parentRoute: typeof StaffRouteRoute
-    }
-    '/_staff/physician/consultation/$appointmentId/': {
-      id: '/_staff/physician/consultation/$appointmentId/'
+    '/_modules/physician/consultation/$appointmentId/': {
+      id: '/_modules/physician/consultation/$appointmentId/'
       path: '/physician/consultation/$appointmentId'
       fullPath: '/physician/consultation/$appointmentId/'
-      preLoaderRoute: typeof StaffPhysicianConsultationAppointmentIdIndexRouteImport
-      parentRoute: typeof StaffRouteRoute
+      preLoaderRoute: typeof ModulesPhysicianConsultationAppointmentIdIndexRouteImport
+      parentRoute: typeof ModulesRouteRoute
     }
   }
 }
@@ -325,6 +325,31 @@ const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
   AuthRouteRouteChildren,
 )
 
+interface ModulesRouteRouteChildren {
+  ModulesAdminIndexRoute: typeof ModulesAdminIndexRoute
+  ModulesFrontDeskIndexRoute: typeof ModulesFrontDeskIndexRoute
+  ModulesPatientsIndexRoute: typeof ModulesPatientsIndexRoute
+  ModulesPhysicianIndexRoute: typeof ModulesPhysicianIndexRoute
+  ModulesAdminStaffIndexRoute: typeof ModulesAdminStaffIndexRoute
+  ModulesPatientsPatientIdIndexRoute: typeof ModulesPatientsPatientIdIndexRoute
+  ModulesPhysicianConsultationAppointmentIdIndexRoute: typeof ModulesPhysicianConsultationAppointmentIdIndexRoute
+}
+
+const ModulesRouteRouteChildren: ModulesRouteRouteChildren = {
+  ModulesAdminIndexRoute: ModulesAdminIndexRoute,
+  ModulesFrontDeskIndexRoute: ModulesFrontDeskIndexRoute,
+  ModulesPatientsIndexRoute: ModulesPatientsIndexRoute,
+  ModulesPhysicianIndexRoute: ModulesPhysicianIndexRoute,
+  ModulesAdminStaffIndexRoute: ModulesAdminStaffIndexRoute,
+  ModulesPatientsPatientIdIndexRoute: ModulesPatientsPatientIdIndexRoute,
+  ModulesPhysicianConsultationAppointmentIdIndexRoute:
+    ModulesPhysicianConsultationAppointmentIdIndexRoute,
+}
+
+const ModulesRouteRouteWithChildren = ModulesRouteRoute._addFileChildren(
+  ModulesRouteRouteChildren,
+)
+
 interface PublicRouteRouteChildren {
   PublicIndexRoute: typeof PublicIndexRoute
   PublicManageIndexRoute: typeof PublicManageIndexRoute
@@ -341,35 +366,10 @@ const PublicRouteRouteWithChildren = PublicRouteRoute._addFileChildren(
   PublicRouteRouteChildren,
 )
 
-interface StaffRouteRouteChildren {
-  StaffAdminIndexRoute: typeof StaffAdminIndexRoute
-  StaffFrontDeskIndexRoute: typeof StaffFrontDeskIndexRoute
-  StaffPatientsIndexRoute: typeof StaffPatientsIndexRoute
-  StaffPhysicianIndexRoute: typeof StaffPhysicianIndexRoute
-  StaffAdminStaffIndexRoute: typeof StaffAdminStaffIndexRoute
-  StaffPatientsPatientIdIndexRoute: typeof StaffPatientsPatientIdIndexRoute
-  StaffPhysicianConsultationAppointmentIdIndexRoute: typeof StaffPhysicianConsultationAppointmentIdIndexRoute
-}
-
-const StaffRouteRouteChildren: StaffRouteRouteChildren = {
-  StaffAdminIndexRoute: StaffAdminIndexRoute,
-  StaffFrontDeskIndexRoute: StaffFrontDeskIndexRoute,
-  StaffPatientsIndexRoute: StaffPatientsIndexRoute,
-  StaffPhysicianIndexRoute: StaffPhysicianIndexRoute,
-  StaffAdminStaffIndexRoute: StaffAdminStaffIndexRoute,
-  StaffPatientsPatientIdIndexRoute: StaffPatientsPatientIdIndexRoute,
-  StaffPhysicianConsultationAppointmentIdIndexRoute:
-    StaffPhysicianConsultationAppointmentIdIndexRoute,
-}
-
-const StaffRouteRouteWithChildren = StaffRouteRoute._addFileChildren(
-  StaffRouteRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   AuthRouteRoute: AuthRouteRouteWithChildren,
+  ModulesRouteRoute: ModulesRouteRouteWithChildren,
   PublicRouteRoute: PublicRouteRouteWithChildren,
-  StaffRouteRoute: StaffRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

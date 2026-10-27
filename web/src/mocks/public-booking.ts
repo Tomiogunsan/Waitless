@@ -1,8 +1,8 @@
 // Mock versions of the public booking RPCs: get_available_slots,
 // book_public_appointment and get_public_appointment.
 
-import { normalizePhone } from "@/lib/format";
-import { SLOT_TIMES, atClinicTime, bookableDates } from "@/lib/time";
+import { normalizePhone } from "@/utils/format";
+import { SLOT_TIMES, atClinicTime, bookableDates } from "@/utils/time";
 import type { PublicAppointment, Slot } from "@/types/clinic";
 import { departments, getDepartment } from "./clinic";
 
@@ -16,7 +16,11 @@ function hash01(input: string): number {
   return ((h >>> 0) % 1000) / 1000;
 }
 
-export function getAvailableSlots(departmentId: string, date: string, now = new Date()): Slot[] {
+export function getAvailableSlots(
+  departmentId: string,
+  date: string,
+  now = new Date(),
+): Slot[] {
   const earliest = now.getTime() + 60 * 60_000;
   return SLOT_TIMES.map((time) => {
     const slotAt = atClinicTime(date, time);
@@ -59,7 +63,10 @@ const bookings = new Map<string, StoredBooking>([
   ],
 ]);
 
-export const DEMO_LOOKUP = { reference: "CLN-7F3A9C21B4E8", phone: "0803 123 4567" };
+export const DEMO_LOOKUP = {
+  reference: "CLN-7F3A9C21B4E8",
+  phone: "0803 123 4567",
+};
 
 function newReference(): string {
   const hex = crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
@@ -72,12 +79,15 @@ export function bookPublicAppointment(input: {
   fullName: string;
   phone: string;
 }): StoredBooking {
-  const names = PHYSICIAN_BY_DEPARTMENT[input.departmentId] ?? ["Dr. Adaeze Nwosu"];
+  const names = PHYSICIAN_BY_DEPARTMENT[input.departmentId] ?? [
+    "Dr. Adaeze Nwosu",
+  ];
   const booking: StoredBooking = {
     booking_reference: newReference(),
     appointment_time: input.slotAt,
     appointment_status: "scheduled",
-    department_name: getDepartment(input.departmentId)?.name ?? "General Medicine",
+    department_name:
+      getDepartment(input.departmentId)?.name ?? "General Medicine",
     physician_name: names[Math.floor(hash01(input.slotAt) * names.length)]!,
     time_under_review: false,
     phone: normalizePhone(input.phone),
@@ -92,12 +102,20 @@ export function getBooking(reference: string): StoredBooking | undefined {
 }
 
 /** Lookup needs both the code and the phone number, like the real RPC. */
-export function getPublicAppointment(reference: string, phone: string): StoredBooking | undefined {
+export function getPublicAppointment(
+  reference: string,
+  phone: string,
+): StoredBooking | undefined {
   const booking = getBooking(reference);
-  return booking && booking.phone === normalizePhone(phone) ? booking : undefined;
+  return booking && booking.phone === normalizePhone(phone)
+    ? booking
+    : undefined;
 }
 
-export function updateBooking(reference: string, changes: Partial<StoredBooking>): StoredBooking | undefined {
+export function updateBooking(
+  reference: string,
+  changes: Partial<StoredBooking>,
+): StoredBooking | undefined {
   const booking = getBooking(reference);
   if (!booking) return undefined;
   const updated = { ...booking, ...changes };
@@ -109,9 +127,12 @@ export const departmentSummaries = departments.map((d) => ({
   ...d,
   physicianCount: PHYSICIAN_BY_DEPARTMENT[d.id]?.length ?? 0,
   description: {
-    "dep-gm": "Check-ups, fever, infections, blood pressure and everyday health concerns.",
-    "dep-paed": "Care for babies, children and teenagers, including immunisations.",
+    "dep-gm":
+      "Check-ups, fever, infections, blood pressure and everyday health concerns.",
+    "dep-paed":
+      "Care for babies, children and teenagers, including immunisations.",
     "dep-og": "Pregnancy care, antenatal visits and women's health.",
-    "dep-derm": "Skin, hair and nail conditions such as eczema, acne and rashes.",
+    "dep-derm":
+      "Skin, hair and nail conditions such as eczema, acne and rashes.",
   }[d.id]!,
 }));
