@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Button from "@/shared/button/button";
 import { cn } from "@/lib/cn";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];

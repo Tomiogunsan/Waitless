@@ -1,11 +1,16 @@
 import * as Menu from "@radix-ui/react-dropdown-menu";
-import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
+import type {
+  IDropdownMenuContentProp,
+  IDropdownMenuItemProp,
+  IDropdownMenuLabelProp,
+  IDropdownMenuSeparatorProp,
+} from "./interface";
 
 export const DropdownMenu = Menu.Root;
 export const DropdownMenuTrigger = Menu.Trigger;
 
-export function DropdownMenuContent({ className, align = "end", sideOffset = 6, ...props }: ComponentProps<typeof Menu.Content>) {
+export function DropdownMenuContent({ className, align = "end", sideOffset = 6, ...props }: IDropdownMenuContentProp) {
   return (
     <Menu.Portal>
       <Menu.Content
@@ -21,11 +26,7 @@ export function DropdownMenuContent({ className, align = "end", sideOffset = 6, 
   );
 }
 
-interface ItemProps extends ComponentProps<typeof Menu.Item> {
-  tone?: "default" | "danger";
-}
-
-export function DropdownMenuItem({ className, tone = "default", ...props }: ItemProps) {
+export function DropdownMenuItem({ className, tone = "default", ...props }: IDropdownMenuItemProp) {
   return (
     <Menu.Item
       className={cn(
@@ -40,10 +41,10 @@ export function DropdownMenuItem({ className, tone = "default", ...props }: Item
   );
 }
 
-export function DropdownMenuLabel({ className, ...props }: ComponentProps<typeof Menu.Label>) {
+export function DropdownMenuLabel({ className, ...props }: IDropdownMenuLabelProp) {
   return <Menu.Label className={cn("px-2.5 pt-1.5 pb-1 text-xs font-medium text-slate-400", className)} {...props} />;
 }
 
-export function DropdownMenuSeparator({ className, ...props }: ComponentProps<typeof Menu.Separator>) {
+export function DropdownMenuSeparator({ className, ...props }: IDropdownMenuSeparatorProp) {
   return <Menu.Separator className={cn("my-1.5 h-px bg-slate-100", className)} {...props} />;
 }

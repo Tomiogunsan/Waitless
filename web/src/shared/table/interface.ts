@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 export type IAlignType = "left" | "center" | "right";
@@ -11,6 +12,15 @@ export type ITableMenuOption<TData> = {
   action: (_rowData: TData) => void;
   hide?: (_rowData: TData) => boolean;
   className?: string;
+  icon?: LucideIcon;
+  /** "danger" styles destructive actions such as Cancel or Deactivate in red. */
+  tone?: "default" | "danger";
+  /** Shown but not clickable for this row. */
+  disabled?: (_rowData: TData) => boolean;
+  /** Short note beside a disabled option explaining why, e.g. "after +15 min". */
+  disabledReason?: string;
+  /** Draws a divider above this option. */
+  separatorBefore?: boolean;
 };
 
 export type ITableHead<TData> = {
@@ -58,6 +68,12 @@ export type ITableProp<TData> = {
    * (e.g. server-side); otherwise the table filters the visible columns itself.
    */
   onSearch?: (_value: string) => void;
+  /** Fields the built-in search looks in. Defaults to the column accessors. */
+  searchKeys?: (keyof TData)[];
   /** Extra controls on the right of the toolbar, e.g. filters or a count. */
   toolbar?: ReactNode;
+  /** Extra classes for a row, e.g. to highlight a new or inactive record. */
+  rowClassName?: (_rowData: TData) => string | undefined;
+  /** Names the row for screen readers, e.g. "Actions for Amaka Obi". */
+  rowLabel?: (_rowData: TData) => string;
 };

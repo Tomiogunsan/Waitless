@@ -4,7 +4,7 @@ Clinic scheduling and lightweight patient records, built so patients spend less 
 
 Patients book online without an account. Front desk staff check them in and watch the day's schedule update live. Physicians work through their own queue and record visit notes. When a consultation runs late, the system moves the physician's later appointments for the rest of the day, or flags them for staff review when moving them isn't safe.
 
-> **Status:** the Supabase backend (database, security rules, scheduling logic, Edge Functions and tests) is complete. The React frontend and a live demo are in progress.
+> **Status:** the Supabase backend (database, security rules, scheduling logic, Edge Functions and tests) is complete. Every frontend screen is built and runs on mock data; connecting it to the API and a live demo are next.
 
 ## Features
 
@@ -89,7 +89,7 @@ Appointment lifecycle: `scheduled → checked_in → in_progress → completed`,
 - **Database & API:** Supabase (PostgreSQL, PostgREST, Row Level Security, Realtime)
 - **Server logic:** PL/pgSQL functions, Supabase Edge Functions (Deno, TypeScript)
 - **Testing:** pgTAP, 61 end-to-end database tests
-- **Frontend (in progress):** React, TypeScript, TanStack Router, TanStack Query
+- **Frontend:** React 19, TypeScript, Vite, TanStack Router (file-based, type-safe routes and search params), TanStack Query, Tailwind CSS v4, Radix UI, Recharts
 
 ## Running locally
 
@@ -111,6 +111,16 @@ supabase test db    # runs the database test suite
 
 To run the Edge Functions: `supabase functions serve`.
 
+**Frontend** (currently runs on mock data, no backend needed):
+
+```bash
+cd web
+npm install
+npm run dev         # http://localhost:5173
+```
+
+On the sign-in page, choose **Front desk**, **Physician** or **Admin** to explore each role.
+
 **Creating the first admin:** staff join by invitation from an admin, so the first admin is created by hand. In Studio, add a user under **Authentication → Users**, then run in the SQL Editor:
 
 ```sql
@@ -121,6 +131,17 @@ VALUES ('<the new user id>', 'Your Name', 'admin');
 ## Project structure
 
 ```
+web/src/
+├── routes/                # File-based routes (TanStack Router)
+│   ├── _public/           # Booking, confirmation, manage booking
+│   ├── _auth/             # Sign in, set password
+│   └── _staff/            # Front desk, physician, admin, patients
+├── shared/                # Reusable UI: one folder per component (interface.ts + component)
+├── components/            # Feature components: booking, front-desk dialogs, charts
+├── lib/                   # Time zone, scheduling rules, session, guards
+├── mocks/                 # Mock data shaped like the database tables
+└── types/                 # Types mirroring the Supabase schema
+
 supabase/
 ├── migrations/
 │   ├── ..._create_clinic_tables.sql              # Tables, constraints, indexes
@@ -142,6 +163,6 @@ supabase/
 - [x] Public booking with automatic physician assignment
 - [x] Staff invitations and account management
 - [x] End-to-end database tests
-- [ ] React frontend: booking page and role dashboards
-- [ ] Admin analytics: appointments per department, average wait time
+- [x] Frontend screens for every role, on mock data
+- [ ] Connect the frontend to Supabase (auth, queries, Realtime)
 - [ ] Live demo with sample data and demo logins for each role

@@ -1,9 +1,15 @@
 import { Loader2, MoreHorizontal, Search } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/shared/dropdown/dropdown-menu";
-import { Input } from "@/components/ui/field";
+import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import Button from "@/shared/button/button";
+import { Card } from "@/shared/card/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/shared/dropdown/dropdown-menu";
+import Input from "@/shared/input/input";
 import { cn } from "@/lib/cn";
 import type { IAlignType, ITableBody, ITableHead, ITableProp } from "./interface";
 import TableEmptyState from "./table-empty-state";
@@ -32,11 +38,16 @@ function cellValue<TData extends ITableBody>(head: ITableHead<TData>, row: TData
   return value === null || value === undefined || value === "" ? <span className="text-slate-300">—</span> : String(value);
 }
 
-/** Matches the query against every column that has an accessor. */
-function matchesQuery<TData extends ITableBody>(row: TData, heads: ITableHead<TData>[], query: string) {
-  return heads.some((head) => {
-    if (head.accessor === null || head.accessor === "") return false;
-    const value = row[head.accessor as keyof TData];
+/** Matches the query against the given fields, or every column with an accessor. */
+function matchesQuery<TData extends ITableBody>(
+  row: TData,
+  heads: ITableHead<TData>[],
+  query: string,
+  searchKeys?: (keyof TData)[],
+) {
+  const keys = searchKeys ?? heads.map((head) => head.accessor).filter((key) => key !== null && key !== "");
+  return keys.some((key) => {
+    const value = row[key as keyof TData];
     return value !== null && value !== undefined && String(value).toLowerCase().includes(query);
   });
 }
@@ -64,7 +75,10 @@ export default function Table<TData extends ITableBody>({
   searchPlaceholder = "Search",
   searchValue,
   onSearch,
+  searchKeys,
   toolbar,
+  rowClassName,
+  rowLabel,
 }: ITableProp<TData>) {
   const [internalQuery, setInternalQuery] = useState("");
   const [internalPage, setInternalPage] = useState(1);
@@ -80,8 +94,8 @@ export default function Table<TData extends ITableBody>({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q || onSearch) return dataTableSource;
-    return dataTableSource.filter((row) => matchesQuery(row, tableHeads, q));
-  }, [dataTableSource, onSearch, query, tableHeads]);
+    return dataTableSource.filter((row) => matchesQuery(row, tableHeads, q, searchKeys));
+  }, [dataTableSource, onSearch, query, searchKeys, tableHeads]);
 
   const totalRows = serverPaginated ? total : filtered.length;
   const pageCount = Math.max(1, Math.ceil(totalRows / pageSize));
@@ -169,9 +183,11 @@ export default function Table<TData extends ITableBody>({
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                     onKeyDown={onRowClick ? (e) => handleRowKey(e, row) : undefined}
                     tabIndex={onRowClick ? 0 : undefined}
+                    aria-label={onRowClick && rowLabel ? rowLabel(row) : undefined}
                     className={cn(
                       "group transition-colors hover:bg-slate-50",
                       onRowClick && "cursor-pointer focus-visible:bg-brand-50/60 focus-visible:outline-none",
+                      rowClassName?.(row),
                     )}
                   >
                     {tableHeads.map((head, index) => (
@@ -189,17 +205,33 @@ export default function Table<TData extends ITableBody>({
                           visibleOptions.length > 0 && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button size="icon" variant="ghost" aria-label="Row actions" onClick={() => onMenuClick?.(row)}>
+                                <Button size="icon" variant="ghost" aria-label={rowLabel ? `Actions for ${rowLabel(row)}` : "Row actions"} onClick={() => onMenuClick?.(row)}>
                                   <MoreHorizontal />
                                 </Button>
                               </DropdownMenuTrigger>
                               {/* Menu items render in a portal; stop their clicks reaching the row. */}
                               <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
-                                {visibleOptions.map((option) => (
-                                  <DropdownMenuItem key={option.menuTitle} className={option.className} onSelect={() => option.action(row)}>
-                                    {option.menuTitle}
-                                  </DropdownMenuItem>
-                                ))}
+                                {visibleOptions.map((option, index) => {
+                                  const Icon = option.icon;
+                                  const disabled = option.disabled?.(row) ?? false;
+                                  return (
+                                    <Fragment key={option.menuTitle}>
+                                      {option.separatorBefore && index > 0 && <DropdownMenuSeparator />}
+                                      <DropdownMenuItem
+                                        tone={option.tone}
+                                        disabled={disabled}
+                                        className={option.className}
+                                        onSelect={() => option.action(row)}
+                                      >
+                                        {Icon && <Icon aria-hidden />}
+                                        {option.menuTitle}
+                                        {disabled && option.disabledReason && (
+                                          <span className="ml-auto text-xs text-slate-400">{option.disabledReason}</span>
+                                        )}
+                                      </DropdownMenuItem>
+                                    </Fragment>
+                                  );
+                                })}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           )
@@ -207,7 +239,7 @@ export default function Table<TData extends ITableBody>({
                           <Button
                             size="icon"
                             variant="ghost"
-                            aria-label="Row actions"
+                            aria-label={rowLabel ? `Actions for ${rowLabel(row)}` : "Row actions"}
                             onClick={() => {
                               onMenuClick?.(row);
                               handleMenu?.(row);
