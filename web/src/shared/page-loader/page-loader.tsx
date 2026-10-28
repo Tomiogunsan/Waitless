@@ -1,10 +1,6 @@
 import type { IPageLoaderProp } from "./interface";
 
-/**
- * Full-screen loader shown while the app starts, e.g. on reload while
- * Supabase restores the saved login. Matches the splash in index.html so
- * the hand-over from HTML to React is seamless.
- */
+
 export default function PageLoader({ label = "Loading Waitless" }: IPageLoaderProp) {
   return (
     <div role="status" aria-live="polite" className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-white">
