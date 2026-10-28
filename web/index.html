@@ -10,9 +10,28 @@
       content="Waitless: book a clinic appointment in minutes and spend less time in the waiting room."
     />
     <title>Waitless</title>
+    <style>
+      .splash { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.25rem; background: #fff; font-family: ui-sans-serif, system-ui, sans-serif; }
+      .splash path { animation: splash-draw 1.6s ease-in-out infinite; }
+      .splash-name { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.015em; color: #0f172a; }
+      .splash-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+      @keyframes splash-draw { 0% { stroke-dashoffset: 1; } 45%, 65% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -1; } }
+      @media (prefers-reduced-motion: reduce) { .splash path { animation: none; stroke-dashoffset: 0; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Shown before the JavaScript loads; React replaces it with the
+           matching PageLoader (src/shared/page-loader). -->
+      <div class="splash" role="status" aria-live="polite">
+        <svg viewBox="0 0 32 32" width="64" height="64" aria-hidden="true">
+          <rect width="32" height="32" rx="9" fill="#2559eb" />
+          <path d="M8 11.5 11.5 21l4.5-7.5 4.5 7.5L24 11.5" pathLength="1" stroke-dasharray="1 1" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span class="splash-name" aria-hidden="true">Waitless</span>
+        <span class="splash-sr">Loading Waitless</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
