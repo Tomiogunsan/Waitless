@@ -48,7 +48,7 @@ import type { ITableHead, ITableMenuOption } from "@/shared/table/interface";
 import Table from "@/shared/table/table";
 import TableEmptyState from "@/shared/table/table-empty-state";
 import type { Staff, StaffRole } from "@/types/clinic";
-import { ROLE_LABELS } from "@/helpers/user-role";
+import { ROLE_ICONS, ROLE_LABELS } from "@/helpers/user-role";
 
 export const Route = createFileRoute("/_modules/admin/staff/")({
   beforeLoad: ({ context }) => requireRole(context.session, ["admin"]),
@@ -58,11 +58,7 @@ export const Route = createFileRoute("/_modules/admin/staff/")({
 type RoleFilter = "all" | StaffRole;
 type DialogState = { kind: "role" | "deactivate"; member: Staff } | null;
 
-const ROLE_ICONS: Record<StaffRole, LucideIcon> = {
-  physician: Stethoscope,
-  front_desk: ClipboardList,
-  admin: BarChart3,
-};
+
 
 function StaffPage() {
   const members = useStaffList();
