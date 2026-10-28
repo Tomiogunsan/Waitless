@@ -53,6 +53,8 @@ export const session = {
   },
   async signOut() {
     await authSignOut();
+    user = null
+    emit()
   },
   subscribe(listener: () => void) {
     listeners.add(listener);

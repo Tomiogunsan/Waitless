@@ -33,13 +33,15 @@ import {
 import Logo from "@/shared/logo/logo";
 import { cn } from "@/utils/cn";
 
-import { session, useRole } from "@/utils/session";
-import { CURRENT_USER, getStaff } from "@/mocks/clinic";
+import { session, useCurrentUser, useRole } from "@/utils/session";
+
 import type { StaffRole } from "@/types/clinic";
 import { ROLE_HOME, ROLE_LABELS } from "@/helpers/user-role";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/constants/demo-accounts";
 
 export const Route = createFileRoute("/_modules")({
-  beforeLoad: ({ context }) => {
+  beforeLoad: async ({ context }) => {
+    await context.session.ready();
     if (!context.session.getRole()) throw redirect({ to: "/login" });
   },
   component: StaffLayout,
@@ -126,12 +128,15 @@ function StaffLayout() {
 
 function Sidebar({ role }: { role: StaffRole }) {
   const navigate = useNavigate();
-  const user = getStaff(CURRENT_USER[role])!;
+  const user = useCurrentUser();
+  if (!user) return null;
 
-  const switchRole = (next: StaffRole) => {
-    session.signIn(next);
-    void navigate({ to: ROLE_HOME[next] });
+  const switchRole = async (next: StaffRole) => {
+    const profile = await session.signIn(DEMO_ACCOUNTS[next], DEMO_PASSWORD);
+    await navigate({ to: ROLE_HOME[profile.role] });
   };
+
+  const isDemoAccount = Object.values(DEMO_ACCOUNTS).includes(user.email);
 
   return (
     <div className="flex h-full flex-col">
@@ -177,10 +182,10 @@ function Sidebar({ role }: { role: StaffRole }) {
       <div className="border-t border-slate-100 p-3">
         <DropdownMenu>
           <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors hover:bg-slate-100 data-[state=open]:bg-slate-100">
-            <Avatar name={user.full_name} size="md" />
+            <Avatar name={user.fullName} size="md" />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold text-slate-900">
-                {user.full_name}
+                {user.fullName}
               </span>
               <span className="block truncate text-xs text-slate-500">
                 {user.email}
@@ -189,11 +194,13 @@ function Sidebar({ role }: { role: StaffRole }) {
             <ChevronsUpDown className="size-4 text-slate-400" aria-hidden />
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-60">
-            <DropdownMenuLabel className="flex items-center gap-1.5">
-              <Repeat2 className="size-3.5" aria-hidden />
-              Demo: switch role
-            </DropdownMenuLabel>
-            {(Object.keys(ROLE_HOME) as StaffRole[]).map((r) => (
+            {isDemoAccount && (
+              <>
+               <DropdownMenuLabel className="flex items-center gap-1.5">
+                <Repeat2 className="size-3.5" aria-hidden />
+                Demo: switch role
+              </DropdownMenuLabel>
+               {(Object.keys(ROLE_HOME) as StaffRole[]).map((r) => (
               <DropdownMenuItem
                 key={r}
                 onSelect={() => switchRole(r)}
@@ -208,10 +215,14 @@ function Sidebar({ role }: { role: StaffRole }) {
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
+              </>
+             
+            )}
+
+           
             <DropdownMenuItem
               onSelect={() => {
-                session.signOut();
-                void navigate({ to: "/login" });
+                void session.signOut().then(() => navigate({ to: "/login" }));
               }}
             >
               <LogOut aria-hidden />
