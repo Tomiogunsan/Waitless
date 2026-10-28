@@ -36,6 +36,7 @@ import { cn } from "@/utils/cn";
 import { DEMO_TODAY, useDemoNow } from "@/utils/demo-clock";
 import { formatPhone, pluralize } from "@/utils/format";
 import { requireRole } from "@/utils/guards";
+import { useMockStaffId } from "@/utils/session";
 import { isOnDate } from "@/utils/scheduling";
 import {
   APPOINTMENT_MINUTES,
@@ -45,7 +46,7 @@ import {
   formatTime,
   minutesBetween,
 } from "@/utils/time";
-import { CURRENT_USER, getMedicalInfo, getStaff } from "@/mocks/clinic";
+import { getMedicalInfo, getStaff } from "@/mocks/clinic";
 import {
   appointmentStore,
   noteStore,
@@ -68,9 +69,9 @@ export const Route = createFileRoute(
   ),
 });
 
-const ME = CURRENT_USER.physician;
 
 function ConsultationPage() {
+  const ME = useMockStaffId()!;
   const { appointmentId } = Route.useParams();
   const appointment = useAppointments().find((a) => a.id === appointmentId)!;
   const patient = patientStore.get(appointment.patient_id)!;
@@ -231,6 +232,7 @@ function ProgressRing({ value, warn }: { value: number; warn: boolean }) {
 }
 
 function StartPanel({ appointment }: { appointment: Appointment }) {
+  const ME = useMockStaffId()!;
   const now = useDemoNow();
   const busy = useAppointments().some(
     (a) => a.physician_id === ME && a.status === "in_progress",
@@ -267,6 +269,7 @@ function StartPanel({ appointment }: { appointment: Appointment }) {
 }
 
 function NoteForm({ appointment }: { appointment: Appointment }) {
+  const ME = useMockStaffId()!;
   const navigate = useNavigate();
   const notes = useVisitNotes();
   const saved = notes.find((n) => n.appointment_id === appointment.id);
@@ -428,6 +431,7 @@ function CompleteDialog({
   canComplete: boolean;
   onCompleted: () => void;
 }) {
+  const ME = useMockStaffId()!;
   const now = useDemoNow();
   const all = useAppointments();
   const [open, setOpen] = useState(false);

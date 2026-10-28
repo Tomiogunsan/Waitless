@@ -1,18 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowRightLeft,
-  BarChart3,
   Check,
-  ClipboardList,
   MailCheck,
   Send,
   ShieldAlert,
-  Stethoscope,
   UserCog,
   UserMinus,
   UserPlus,
   UserRoundCheck,
-  type LucideIcon,
 } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -35,9 +31,10 @@ import { cn } from "@/utils/cn";
 import { demoNow } from "@/utils/demo-clock";
 import { isValidEmail, pluralize} from "@/utils/format";
 import { requireRole } from "@/utils/guards";
+import { useMockStaffId } from "@/utils/session";
 import { isActive, isPhysicianFree } from "@/utils/scheduling";
 import { formatDate } from "@/utils/time";
-import { CURRENT_USER, departments, getDepartment } from "@/mocks/clinic";
+import { departments, getDepartment } from "@/mocks/clinic";
 import {
   appointmentStore,
   staffStore,
@@ -61,6 +58,7 @@ type DialogState = { kind: "role" | "deactivate"; member: Staff } | null;
 
 
 function StaffPage() {
+  const myId = useMockStaffId();
   const members = useStaffList();
   const appointments = useAppointments();
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
@@ -99,7 +97,7 @@ function StaffPage() {
     });
   };
 
-  const isMe = (member: Staff) => member.id === CURRENT_USER.admin;
+  const isMe = (member: Staff) => member.id === myId;
 
   // You can't change your own account, so your row has no menu.
   const menuOptions: ITableMenuOption<Staff>[] = [

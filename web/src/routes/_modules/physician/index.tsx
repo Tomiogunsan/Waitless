@@ -27,6 +27,7 @@ import { cn } from "@/utils/cn";
 import { greeting } from "@/utils/constants";
 import { DEMO_TODAY, useDemoNow } from "@/utils/demo-clock";
 import { requireRole } from "@/utils/guards";
+import { useMockStaffId } from "@/utils/session";
 import { isOnDate, overlaps } from "@/utils/scheduling";
 import {
   APPOINTMENT_MINUTES,
@@ -37,7 +38,7 @@ import {
   formatTime,
   minutesBetween,
 } from "@/utils/time";
-import { CURRENT_USER, getMedicalInfo, getStaff } from "@/mocks/clinic";
+import { getMedicalInfo, getStaff } from "@/mocks/clinic";
 import { appointmentStore, patientStore, useAppointments } from "@/mocks/store";
 import type { Appointment } from "@/types/clinic";
 
@@ -46,9 +47,9 @@ export const Route = createFileRoute("/_modules/physician/")({
   component: PhysicianQueuePage,
 });
 
-const ME = CURRENT_USER.physician;
 
 function PhysicianQueuePage() {
+  const ME = useMockStaffId()!;
   const now = useDemoNow(1000);
   const navigate = useNavigate();
   const all = useAppointments();
@@ -61,7 +62,7 @@ function PhysicianQueuePage() {
           (a) => a.physician_id === ME && isOnDate(a.scheduled_at, DEMO_TODAY),
         )
         .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)),
-    [all],
+    [all, ME],
   );
   const current = mine.find((a) => a.status === "in_progress");
   const queue = mine

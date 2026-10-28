@@ -23,9 +23,8 @@ import {
   normalizePhone,
 } from "@/utils/format";
 import { requireRole } from "@/utils/guards";
-import { useRole } from "@/utils/session";
+import { useMockStaffId, useRole } from "@/utils/session";
 import { formatDate } from "@/utils/time";
-import { CURRENT_USER } from "@/mocks/clinic";
 import { patientStore, useAppointments, usePatients } from "@/mocks/store";
 import type { ITableHead } from "@/shared/table/interface";
 import Table from "@/shared/table/table";
@@ -101,6 +100,7 @@ const PATIENT_COLUMNS: ITableHead<PatientRow>[] = [
 ];
 
 function PatientsPage() {
+  const myId = useMockStaffId();
   const role = useRole();
   const navigate = useNavigate();
   const allPatients = usePatients();
@@ -117,7 +117,7 @@ function PatientsPage() {
           appointments.some(
             (a) =>
               a.patient_id === p.id &&
-              a.physician_id === CURRENT_USER.physician &&
+              a.physician_id === myId &&
               a.status !== "cancelled",
           ),
         )
@@ -153,7 +153,7 @@ function PatientsPage() {
         };
       })
       .sort((a, b) => a.full_name.localeCompare(b.full_name));
-  }, [allPatients, appointments, isPhysician, query]);
+  }, [allPatients, appointments, isPhysician, myId, query]);
 
   return (
     <div className="space-y-6">

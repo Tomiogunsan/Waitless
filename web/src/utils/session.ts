@@ -5,6 +5,7 @@ import { loadStaffProfile, signIn as authSignIn, signOut as authSignOut } from "
 import { AuthError } from "@/services/types/response/auth";
 import type { StaffProfile } from "@/types/auth";
 import type { StaffRole } from "@/types/clinic";
+import { staff as mockStaff } from "@/mocks/clinic";
 
 // Who is signed in, kept in sync with Supabase Auth. A plain store (not
 // React state) so both components and TanStack Router's beforeLoad guards
@@ -72,4 +73,8 @@ export function useCurrentUser(): StaffProfile | null {
 
 export function useRole(): StaffRole | null {
   return useSyncExternalStore(session.subscribe, session.getRole);
+}
+export function useMockStaffId(): string | undefined {
+  const user = useCurrentUser();
+  return mockStaff.find((s) => s.email === user?.email)?.id;
 }

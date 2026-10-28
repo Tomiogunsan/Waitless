@@ -10,7 +10,6 @@ import type {
   Patient,
   PatientMedicalInfo,
   Staff,
-  StaffRole,
   VisitNote,
 } from "@/types/clinic";
 
@@ -37,12 +36,7 @@ export const staff: Staff[] = [
   { id: "stf-bayo", full_name: "Bayo Martins", email: "bayo@waitless.health", role: "front_desk", department_id: null, is_active: false, invite_pending: false, created_at: joined(300) },
 ];
 
-/** The signed-in person for each demo role. */
-export const CURRENT_USER: Record<StaffRole, string> = {
-  admin: "stf-folake",
-  front_desk: "stf-chidinma",
-  physician: "stf-adaeze",
-};
+
 
 export const patients: Patient[] = [
   { id: "pat-amaka", full_name: "Amaka Obi", phone: "+2348031234567", email: "amaka.obi@gmail.com", created_at: joined(140) },
