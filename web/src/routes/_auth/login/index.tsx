@@ -16,13 +16,15 @@ import Field from "@/shared/form-field/form-field";
 import Input from "@/shared/input/input";
 import Alert from "@/shared/alert/alert";
 import { isValidEmail } from "@/utils/format";
-import {  session } from "@/utils/session";
-import { staff } from "@/mocks/clinic";
+import { session } from "@/utils/session";
 import type { StaffRole } from "@/types/clinic";
 import { ROLE_HOME } from "@/helpers/user-role";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/constants/demo-accounts";
+import { AuthError } from "@/services/types/response/auth";
 
 export const Route = createFileRoute("/_auth/login/")({
-  beforeLoad: ({ context }) => {
+  beforeLoad: async ({ context }) => {
+    await context.session.ready()
     const role = context.session.getRole();
     if (role) throw redirect({ to: ROLE_HOME[role] });
   },
@@ -63,10 +65,20 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const enterAs = (role: StaffRole) => {
-    session.signIn(role);
-    void navigate({ to: ROLE_HOME[role] });
+  const signInWith = async (emailValue: string, passwordValue: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const profile = await session.signIn(emailValue, passwordValue);
+      await navigate({ to: ROLE_HOME[profile.role] });
+    } catch (err) {
+      setError(err instanceof AuthError ? err.message : "Something went wrong signing in. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const enterAs = (role: StaffRole) => void signInWith(DEMO_ACCOUNTS[role], DEMO_PASSWORD);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -74,19 +86,7 @@ function LoginPage() {
       setError("Enter your email address and password.");
       return;
     }
-    setLoading(true);
-    setError(null);
-    window.setTimeout(() => {
-      setLoading(false);
-      const member = staff.find((s) => s.email === email.trim().toLowerCase());
-      if (!member)
-        return setError("That email and password don't match an account.");
-      if (!member.is_active)
-        return setError(
-          "This account has been deactivated. Contact your clinic admin.",
-        );
-      enterAs(member.role);
-    }, 600);
+    void signInWith(email, password);
   };
 
   return (
@@ -168,7 +168,8 @@ function LoginPage() {
             <button
               type="button"
               onClick={() => enterAs(role)}
-              className="group flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left transition-all hover:border-brand-300 hover:bg-brand-50/50 hover:shadow-sm"
+              disabled={loading}
+              className="group flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left transition-all hover:border-brand-300 hover:bg-brand-50/50 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span className="flex size-10 items-center justify-center rounded-lg bg-brand-50 text-brand-600 transition-colors group-hover:bg-brand-600 group-hover:text-white">
                 <Icon className="size-5" aria-hidden />

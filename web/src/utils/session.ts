@@ -1,47 +1,36 @@
-import type { StaffProfile } from './../types/auth';
-import { useSyncExternalStore } from "react";
-import type { StaffRole } from "@/types/clinic";
 import type { User } from "@supabase/supabase-js";
-import { loadStaffProfile , signOut as authSignOut } from '@/services/auth-service';
-import { supabase } from '@/config/supabase';
+import { useSyncExternalStore } from "react";
+import { supabase } from "@/config/supabase";
+import { loadStaffProfile, signIn as authSignIn, signOut as authSignOut } from "@/services/auth-service";
+import { AuthError } from "@/services/types/response/auth";
+import type { StaffProfile } from "@/types/auth";
+import type { StaffRole } from "@/types/clinic";
 
-// Demo sign-in state. It stands in for Supabase Auth plus the
-// current_staff_role() RPC until the API is connected. It is a plain store
-// so both React components and TanStack Router's beforeLoad guards can read it.
+// Who is signed in, kept in sync with Supabase Auth. A plain store (not
+// React state) so both components and TanStack Router's beforeLoad guards
+// can read it.
 
-const STORAGE_KEY = "waitless.demo-role";
-
-
-
-function readStoredRole(): StaffRole | null {
-  try {
-    const value = window.localStorage.getItem(STORAGE_KEY);
-    return value === "front_desk" || value === "physician" || value === "admin" ? value : null;
-  } catch {
-    return null;
-  }
-}
-let user: StaffProfile | null = null
-let role: StaffRole | null = readStoredRole();
+let user: StaffProfile | null = null;
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((listener) => listener());
 
 let markReady: () => void;
 const readyPromise = new Promise<void>((resolve) => (markReady = resolve));
 
-async function applyAuthUser(authUser:User | null){
-  if(!authUser){
-    user = null
-  }else if(authUser.id !== user?.id){
+async function applyAuthUser(authUser: User | null) {
+  if (!authUser) {
+    user = null;
+  } else if (authUser.id !== user?.id) {
     try {
-      user = await loadStaffProfile(authUser)
-      if(!user) await authSignOut()
-    } catch (error) {
-      user = null
+      user = await loadStaffProfile(authUser);
+      // Signed in but no access (e.g. deactivated): end the session.
+      if (!user) await authSignOut();
+    } catch {
+      user = null;
     }
   }
-  emit()
-  markReady()
+  emit();
+  markReady();
 }
 
 supabase.auth.onAuthStateChange((event, authSession) => {
@@ -50,16 +39,20 @@ supabase.auth.onAuthStateChange((event, authSession) => {
   setTimeout(() => void applyAuthUser(authSession?.user ?? null), 0);
 });
 
-
-
-
 export const session = {
-  ready: ()=> readyPromise,
+  /** Resolves once the saved login (if any) has been checked on page load. */
+  ready: () => readyPromise,
   getUser: () => user,
   getRole: (): StaffRole | null => user?.role ?? null,
-  
+  /** Signs in, then waits until we know who they are, so guards see them straight away. */
+  async signIn(email: string, password: string): Promise<StaffProfile> {
+    const authUser = await authSignIn(email, password);
+    await applyAuthUser(authUser);
+    if (!user) throw new AuthError("This account has been deactivated. Contact your clinic admin.");
+    return user;
+  },
   async signOut() {
-    await authSignOut()
+    await authSignOut();
   },
   subscribe(listener: () => void) {
     listeners.add(listener);
@@ -74,6 +67,7 @@ export type Session = typeof session;
 export function useCurrentUser(): StaffProfile | null {
   return useSyncExternalStore(session.subscribe, session.getUser);
 }
+
 export function useRole(): StaffRole | null {
   return useSyncExternalStore(session.subscribe, session.getRole);
 }

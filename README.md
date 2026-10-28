@@ -122,7 +122,7 @@ npm run dev                  # http://localhost:5173
 
 On the sign-in page, choose **Front desk**, **Physician** or **Admin** to explore each role.
 
-**Demo data:** `supabase db reset` loads [`supabase/seed.sql`](supabase/seed.sql): staff, patients, a busy "today", upcoming bookings and 90 days of history. Every demo account uses the password `Waitless-demo-2026`:
+**Demo data:** `supabase db reset` loads [`supabase/seed.sql`](supabase/seed.sql): staff, patients, a busy "today", upcoming bookings and 90 days of history. Every demo account uses the password `Waitless@2026`:
 
 | Role | Email |
 |---|---|

@@ -1,7 +1,7 @@
 -- Waitless demo data. Loaded by `supabase db reset` after the migrations.
 --
 -- Creates:
---   * Staff with real logins (password for all: Waitless-demo-2026)
+--   * Staff with real logins (password for all: Waitless@2026)
 --   * 14 patients with allergies / history
 --   * A busy "today", upcoming bookings, and visit notes
 --   * ~90 days of appointment history for the admin analytics
@@ -124,20 +124,20 @@ $$;
 
 
 -- =========================================
--- Staff (password for every active account: Waitless-demo-2026)
+-- Staff (password for every active account: Waitless@2026)
 -- =========================================
 
-SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000001', 'folake@waitless.health', 'Waitless-demo-2026', 'Folake Adeyemi');
-SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000002', 'emeka@waitless.health', 'Waitless-demo-2026', 'Emeka Obi');
-SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000003', 'chidinma@waitless.health', 'Waitless-demo-2026', 'Chidinma Okafor');
-SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000004', 'musa@waitless.health', 'Waitless-demo-2026', 'Musa Ibrahim');
-SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000005', 'adaeze@waitless.health', 'Waitless-demo-2026', 'Dr. Adaeze Nwosu');
-SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000006', 'tunde@waitless.health', 'Waitless-demo-2026', 'Dr. Tunde Bakare');
-SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000007', 'ngozi@waitless.health', 'Waitless-demo-2026', 'Dr. Ngozi Eze');
-SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000008', 'kemi@waitless.health', 'Waitless-demo-2026', 'Dr. Kemi Alabi');
-SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000009', 'ibrahim@waitless.health', 'Waitless-demo-2026', 'Dr. Ibrahim Sule');
+SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000001', 'folake@waitless.health', 'Waitless@2026', 'Folake Adeyemi');
+SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000002', 'emeka@waitless.health', 'Waitless@2026', 'Emeka Obi');
+SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000003', 'chidinma@waitless.health', 'Waitless@2026', 'Chidinma Okafor');
+SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000004', 'musa@waitless.health', 'Waitless@2026', 'Musa Ibrahim');
+SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000005', 'adaeze@waitless.health', 'Waitless@2026', 'Dr. Adaeze Nwosu');
+SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000006', 'tunde@waitless.health', 'Waitless@2026', 'Dr. Tunde Bakare');
+SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000007', 'ngozi@waitless.health', 'Waitless@2026', 'Dr. Ngozi Eze');
+SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000008', 'kemi@waitless.health', 'Waitless@2026', 'Dr. Kemi Alabi');
+SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000009', 'ibrahim@waitless.health', 'Waitless@2026', 'Dr. Ibrahim Sule');
 SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000010', 'yemi@waitless.health', NULL, 'Dr. Yemi Ogunleye');
-SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000011', 'bayo@waitless.health', 'Waitless-demo-2026', 'Bayo Martins');
+SELECT pg_temp.create_login('aaaaaaaa-0000-4000-8000-000000000011', 'bayo@waitless.health', 'Waitless@2026', 'Bayo Martins');
 
 -- Physicians get clinic working hours automatically (migration 3).
 INSERT INTO public.staff (id, full_name, role, department_id)
