@@ -16,9 +16,10 @@ import Field from "@/shared/form-field/form-field";
 import Input from "@/shared/input/input";
 import Alert from "@/shared/alert/alert";
 import { isValidEmail } from "@/utils/format";
-import { ROLE_HOME, session } from "@/utils/session";
+import {  session } from "@/utils/session";
 import { staff } from "@/mocks/clinic";
 import type { StaffRole } from "@/types/clinic";
+import { ROLE_HOME } from "@/helpers/user-role";
 
 export const Route = createFileRoute("/_auth/login/")({
   beforeLoad: ({ context }) => {

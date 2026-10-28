@@ -40,8 +40,3 @@ export function pluralize(count: number, singular: string, plural = `${singular}
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-export const ROLE_LABELS = {
-  physician: "Physician",
-  front_desk: "Front desk",
-  admin: "Admin",
-} as const;

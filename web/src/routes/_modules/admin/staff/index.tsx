@@ -33,7 +33,7 @@ import PageHeader from "@/shared/page-header/page-header";
 import Segmented from "@/shared/segmented/segmented";
 import { cn } from "@/utils/cn";
 import { demoNow } from "@/utils/demo-clock";
-import { isValidEmail, pluralize, ROLE_LABELS } from "@/utils/format";
+import { isValidEmail, pluralize} from "@/utils/format";
 import { requireRole } from "@/utils/guards";
 import { isActive, isPhysicianFree } from "@/utils/scheduling";
 import { formatDate } from "@/utils/time";
@@ -48,6 +48,7 @@ import type { ITableHead, ITableMenuOption } from "@/shared/table/interface";
 import Table from "@/shared/table/table";
 import TableEmptyState from "@/shared/table/table-empty-state";
 import type { Staff, StaffRole } from "@/types/clinic";
+import { ROLE_LABELS } from "@/helpers/user-role";
 
 export const Route = createFileRoute("/_modules/admin/staff/")({
   beforeLoad: ({ context }) => requireRole(context.session, ["admin"]),

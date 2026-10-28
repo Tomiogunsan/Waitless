@@ -32,10 +32,11 @@ import {
 } from "@/shared/dropdown/dropdown-menu";
 import Logo from "@/shared/logo/logo";
 import { cn } from "@/utils/cn";
-import { ROLE_LABELS } from "@/utils/format";
-import { ROLE_HOME, session, useRole } from "@/utils/session";
+
+import { session, useRole } from "@/utils/session";
 import { CURRENT_USER, getStaff } from "@/mocks/clinic";
 import type { StaffRole } from "@/types/clinic";
+import { ROLE_HOME, ROLE_LABELS } from "@/helpers/user-role";
 
 export const Route = createFileRoute("/_modules")({
   beforeLoad: ({ context }) => {
