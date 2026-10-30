@@ -9,7 +9,7 @@ import Badge from "@/shared/badge/badge";
 import { cn } from "@/utils/cn";
 import { useCurrentUser } from "@/utils/session";
 import { setPassword as savePassword } from "@/services/auth-service";
-import { AuthError } from "@/services/types/response/auth";
+import { errorMessage } from "@/services/error";
 import { ROLE_HOME, ROLE_ICONS, ROLE_LABELS } from "@/helpers/user-role";
 import { PASSWORD_RULES, PASSWORD_STRENGTH } from "./-constants/password-rules";
 
@@ -47,7 +47,7 @@ function SetPasswordPage() {
       await savePassword(password);
       setDone(true);
     } catch (err) {
-            setError(err instanceof AuthError ? err.message : "We couldn't save your password. Please try again.");
+            setError(errorMessage(err));
     } finally {
       setSaving(false);
     }

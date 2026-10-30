@@ -64,9 +64,9 @@ export function DateStrip({ dates, value, onChange }: IDateStripProp) {
 
 /** Morning and afternoon slots; taken ones are visibly disabled. */
 export function SlotGrid({ slots, value, onChange }: ISlotGridProp) {
-  const morning = slots.filter((s) => formatTime(s.slot_at) < "12:00");
-  const afternoon = slots.filter((s) => formatTime(s.slot_at) >= "13:00");
-  const available = slots.filter((s) => s.is_available).length;
+  const morning = slots.filter((s) => formatTime(s.slotAt) < "12:00");
+  const afternoon = slots.filter((s) => formatTime(s.slotAt) >= "13:00");
+  const available = slots.filter((s) => s.isAvailable).length;
 
   return (
     <div className="space-y-5">
@@ -81,6 +81,34 @@ export function SlotGrid({ slots, value, onChange }: ISlotGridProp) {
         <span className="h-px flex-1 bg-slate-100" />
       </div>
       <SlotGroup icon={Moon} label="Afternoon" slots={afternoon} value={value} onChange={onChange} />
+    </div>
+  );
+}
+
+/**
+ * Placeholder in the exact layout of SlotGrid (5 morning, lunch, 6 afternoon)
+ * so the page doesn't jump when the real slots arrive.
+ */
+export function SlotGridSkeleton() {
+  const group = (count: number) => (
+    <div>
+      <div className="mb-2.5 h-3 w-20 animate-pulse rounded bg-slate-100" />
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+        {Array.from({ length: count }, (_, i) => (
+          <div key={i} className="h-11 animate-pulse rounded-lg bg-slate-100" />
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div role="status" aria-label="Loading available times" className="space-y-5">
+      <div className="h-4 w-40 animate-pulse rounded bg-slate-100" aria-hidden />
+      <div aria-hidden className="space-y-5">
+        {group(5)}
+        <div className="h-px bg-slate-100" />
+        {group(6)}
+      </div>
     </div>
   );
 }
@@ -100,24 +128,24 @@ function SlotGroup({
       </legend>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
         {slots.map((slot) => {
-          const selected = slot.slot_at === value;
+          const selected = slot.slotAt === value;
           return (
             <button
-              key={slot.slot_at}
+              key={slot.slotAt}
               type="button"
-              disabled={!slot.is_available}
+              disabled={!slot.isAvailable}
               aria-pressed={selected}
-              onClick={() => onChange(slot.slot_at)}
+              onClick={() => onChange(slot.slotAt)}
               className={cn(
                 "tabular h-11 rounded-lg border text-sm font-medium transition-all",
                 selected && "border-brand-600 bg-brand-600 text-white shadow-md shadow-brand-600/25",
-                !selected && slot.is_available && "border-slate-200 bg-white text-slate-800 hover:border-brand-400 hover:text-brand-700",
-                !slot.is_available &&
+                !selected && slot.isAvailable && "border-slate-200 bg-white text-slate-800 hover:border-brand-400 hover:text-brand-700",
+                !slot.isAvailable &&
                   "cursor-not-allowed border-dashed border-slate-200 bg-slate-50 text-slate-300 line-through decoration-slate-300",
               )}
             >
-              {formatTime(slot.slot_at)}
-              {!slot.is_available && <span className="sr-only"> (unavailable)</span>}
+              {formatTime(slot.slotAt)}
+              {!slot.isAvailable && <span className="sr-only"> (unavailable)</span>}
             </button>
           );
         })}

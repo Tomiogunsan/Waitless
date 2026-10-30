@@ -1,4 +1,5 @@
-import type { Appointment, AppointmentStatus, Slot } from "@/types/clinic";
+import type { Slot } from "@/types/booking";
+import type { Appointment, AppointmentStatus } from "@/types/clinic";
 import { APPOINTMENT_MINUTES, SLOT_TIMES, atClinicTime, clinicToday } from "./time";
 
 export const ACTIVE_STATUSES: AppointmentStatus[] = ["scheduled", "checked_in", "in_progress"];
@@ -44,8 +45,8 @@ export function physicianSlots(
   return SLOT_TIMES.map((time) => {
     const slotAt = atClinicTime(date, time).toISOString();
     return {
-      slot_at: slotAt,
-      is_available:
+      slotAt,
+      isAvailable:
         new Date(slotAt).getTime() >= earliest && isPhysicianFree(appointments, physicianId, slotAt, excludeAppointmentId),
     };
   });

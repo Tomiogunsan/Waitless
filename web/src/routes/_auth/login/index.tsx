@@ -20,7 +20,7 @@ import { session } from "@/utils/session";
 import type { StaffRole } from "@/types/clinic";
 import { ROLE_HOME } from "@/helpers/user-role";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/constants/demo-accounts";
-import { AuthError } from "@/services/types/response/auth";
+import { errorMessage } from "@/services/error";
 
 export const Route = createFileRoute("/_auth/login/")({
   beforeLoad: async ({ context }) => {
@@ -72,7 +72,7 @@ function LoginPage() {
       const profile = await session.signIn(emailValue, passwordValue);
       await navigate({ to: ROLE_HOME[profile.role] });
     } catch (err) {
-      setError(err instanceof AuthError ? err.message : "Something went wrong signing in. Please try again.");
+      setError(errorMessage(err));
     } finally {
       setLoading(false);
     }

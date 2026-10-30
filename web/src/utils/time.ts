@@ -38,6 +38,16 @@ export function isoWeekday(date: string): number {
   return day === 0 ? 7 : day;
 }
 
+/**
+ * True for a real calendar date written as YYYY-MM-DD, e.g. from a URL.
+ * Rejects the right shape with an impossible date, like 2026-02-30.
+ */
+export function isIsoDate(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T12:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
 export function isClinicDay(date: string): boolean {
   return isoWeekday(date) <= 5;
 }

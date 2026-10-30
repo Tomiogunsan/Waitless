@@ -2,7 +2,7 @@ import type { User } from "@supabase/supabase-js";
 import { useSyncExternalStore } from "react";
 import { supabase } from "@/config/supabase";
 import { loadStaffProfile, signIn as authSignIn, signOut as authSignOut } from "@/services/auth-service";
-import { AuthError } from "@/services/types/response/auth";
+import { AuthError } from "@/services/error";
 import type { StaffProfile } from "@/types/auth";
 import type { StaffRole } from "@/types/clinic";
 import { staff as mockStaff } from "@/mocks/clinic";

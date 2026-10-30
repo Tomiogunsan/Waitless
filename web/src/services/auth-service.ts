@@ -3,7 +3,7 @@
 import { supabase } from "@/config/supabase";
 
 import { isStaffRole} from "@/helpers/user-role";
-import { AuthError, } from "./types/response/auth";
+import { AuthError, GENERIC_ERROR_MESSAGE } from "./error";
 import type { User } from "@supabase/supabase-js";
 import type { StaffProfile } from "@/types/auth";
 
@@ -17,7 +17,7 @@ function friendlyMessage(message: string): string {
     if(/invalid login credentials/i.test(message)) return "That email and password don't match an account"
     if(/banned/i.test(message)) return "This account has been deactivated. Contact your clinic admin."
     if (/email not confirmed/i.test(message)) return "Accept the invite in your email before signing in.";
-  return "Something went wrong signing in. Please try again.";
+  return GENERIC_ERROR_MESSAGE;
 }
 
 export async function signIn(email: string, password: string): Promise<User>{

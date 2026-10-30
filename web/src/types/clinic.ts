@@ -72,11 +72,6 @@ export interface VisitNote {
   updated_at: string;
 }
 
-/** One row of get_available_slots(). */
-export interface Slot {
-  slot_at: string;
-  is_available: boolean;
-}
 
 /** One row of get_public_appointment(). */
 export interface PublicAppointment {

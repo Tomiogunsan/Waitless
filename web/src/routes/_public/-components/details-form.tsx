@@ -1,5 +1,6 @@
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ArrowRight, ShieldCheck } from "lucide-react";
 import { useState, type FormEvent } from "react";
+import Alert from "@/shared/alert/alert";
 import Button from "@/shared/button/button";
 import Field from "@/shared/form-field/form-field";
 import Input from "@/shared/input/input";
@@ -11,14 +12,21 @@ export interface Details {
   email: string;
 }
 
-export function DetailsForm({ onSubmit }: { onSubmit: (details: Details) => void }) {
+interface DetailsFormProps {
+  onSubmit: (details: Details) => void;
+  /** True while the booking request is in flight. */
+  saving: boolean;
+  /** The booking error to show, e.g. "That time is no longer available". */
+  error?: string;
+}
+
+export function DetailsForm({ onSubmit, saving, error }: DetailsFormProps) {
   const [values, setValues] = useState<Details>({
     fullName: "",
     phone: "",
     email: "",
   });
   const [submitted, setSubmitted] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const errors = {
     fullName: values.fullName.trim() ? undefined : "Enter your full name",
@@ -37,9 +45,7 @@ export function DetailsForm({ onSubmit }: { onSubmit: (details: Details) => void
     event.preventDefault();
     setSubmitted(true);
     if (hasErrors) return;
-    setSaving(true);
-    // Simulates the network round trip to book_public_appointment.
-    window.setTimeout(() => onSubmit(values), 700);
+    onSubmit(values);
   };
 
   const update =
@@ -94,6 +100,7 @@ export function DetailsForm({ onSubmit }: { onSubmit: (details: Details) => void
           )}
         </Field>
       </div>
+      {error && <Alert tone="danger" icon={AlertTriangle} title={error} />}
       <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="flex items-center gap-2 text-xs text-slate-500">
           <ShieldCheck className="size-4 shrink-0 text-brand-600" aria-hidden />

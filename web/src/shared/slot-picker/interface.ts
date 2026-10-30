@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import type { Slot } from "@/types/clinic";
+import type { Slot } from "@/types/booking";
 
 export type IDateStripProp = {
   /** Bookable dates as YYYY-MM-DD, in clinic (Lagos) time. */

@@ -1,14 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Baby, Check, HeartPulse, Sparkles, Stethoscope, type LucideIcon } from "lucide-react";
+import { AlertTriangle, Check } from "lucide-react";
 import { useMemo, useState } from "react";
-import { DateStrip, SlotGrid } from "@/shared/slot-picker/slot-picker";
+import Alert from "@/shared/alert/alert";
+import { DateStrip, SlotGrid, SlotGridSkeleton } from "@/shared/slot-picker/slot-picker";
 import { cn } from "@/utils/cn";
-import { bookableDates, formatDate } from "@/utils/time";
-import {
-  bookPublicAppointment,
-  departmentSummaries,
-  getAvailableSlots,
-} from "@/mocks/public-booking";
+import { bookableDates, formatDate, isIsoDate } from "@/utils/time";
+import { useAvailableSlots, useBookAppointment, useDepartments } from "@/hooks/use-booking";
+import { DEFAULT_DEPARTMENT, DEPARTMENT_DETAILS } from "./-constants/department";
 import { DetailsForm } from "./-components/details-form";
 import { Hero } from "./-components/hero";
 import { Step } from "./-components/step";
@@ -25,41 +23,34 @@ export const Route = createFileRoute("/_public/")({
   validateSearch: (search: Record<string, unknown>): BookingSearch => ({
     department:
       typeof search.department === "string" ? search.department : undefined,
-    date:
-      typeof search.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(search.date)
-        ? search.date
-        : undefined,
+    date: isIsoDate(search.date) ? search.date : undefined,
   }),
   component: BookingPage,
 });
 
-const DEPARTMENT_ICONS: Record<string, LucideIcon> = {
-  "dep-gm": Stethoscope,
-  "dep-paed": Baby,
-  "dep-og": HeartPulse,
-  "dep-derm": Sparkles,
-};
 
 function BookingPage() {
   const { department, date } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const dates = useMemo(() => bookableDates(), []);
-  const selectedDepartment = departmentSummaries.find(
-    (d) => d.id === department,
-  );
+  const {
+    data: departments = [],
+    isPending: loadingDepartments,
+    isError: departmentsFailed,
+  } = useDepartments();
+    const selectedDepartment = departments.find((d) => d.id === department);
   const selectedDate = date && dates.includes(date) ? date : null;
-  const slots = useMemo(
-    () =>
-      selectedDepartment && selectedDate
-        ? getAvailableSlots(selectedDepartment.id, selectedDate)
-        : [],
-    [selectedDepartment, selectedDate],
+
+  const { data: slots = [], isPending: loadingSlots } = useAvailableSlots(
+    selectedDepartment?.id,
+    selectedDate,
   );
 
+  const book = useBookAppointment();
   const [slotAt, setSlotAt] = useState<string | null>(null);
   const slotIsValid =
     slotAt !== null &&
-    slots.some((s) => s.slot_at === slotAt && s.is_available);
+    slots.some((s) => s.slotAt === slotAt && s.isAvailable);
 
   const setSearch = (next: BookingSearch) => {
     setSlotAt(null);
@@ -81,13 +72,25 @@ function BookingPage() {
             title="Choose a department"
             done={Boolean(selectedDepartment)}
           >
+            {departmentsFailed && (
+              <Alert
+                tone="danger"
+                icon={AlertTriangle}
+                title="We couldn't load departments. Please refresh the page."
+              />
+            )}
             <div
               className="grid gap-3 sm:grid-cols-2"
               role="radiogroup"
               aria-label="Department"
+              aria-busy={loadingDepartments || undefined}
             >
-              {departmentSummaries.map((d) => {
-                const Icon = DEPARTMENT_ICONS[d.id] ?? Stethoscope;
+              {loadingDepartments &&
+                Array.from({ length: 4 }, (_, i) => (
+                  <div key={i} className="h-24 animate-pulse rounded-xl bg-slate-100" aria-hidden />
+                ))}
+              {departments.map((d) => {
+                const { icon: Icon, description } = DEPARTMENT_DETAILS[d.name] ?? DEFAULT_DEPARTMENT;
                 const selected = d.id === selectedDepartment?.id;
                 return (
                   <button
@@ -129,7 +132,7 @@ function BookingPage() {
                         )}
                       </span>
                       <span className="mt-0.5 block text-sm leading-snug text-slate-500">
-                        {d.description}
+                        {description}
                       </span>
                     </span>
                   </button>
@@ -156,11 +159,11 @@ function BookingPage() {
                     <h3 className="mb-3 text-sm font-medium text-slate-900">
                       {formatDate(selectedDate)}
                     </h3>
-                    <SlotGrid
-                      slots={slots}
-                      value={slotAt}
-                      onChange={setSlotAt}
-                    />
+                    {loadingSlots ? (
+                      <SlotGridSkeleton />
+                    ) : (
+                      <SlotGrid slots={slots} value={slotAt} onChange={setSlotAt} />
+                    )}
                   </div>
                 )}
               </div>
@@ -175,18 +178,23 @@ function BookingPage() {
           >
             {slotIsValid && selectedDepartment && (
               <DetailsForm
-                onSubmit={(details) => {
-                  const booking = bookPublicAppointment({
-                    departmentId: selectedDepartment.id,
-                    slotAt: slotAt!,
-                    ...details,
-                  });
-                  void navigate({
-                    to: "/booking/$reference",
-                    params: { reference: booking.booking_reference },
-                    search: {},
-                  });
-                }}
+                saving={book.isPending}
+                error={book.error?.message}
+                onSubmit={(details) =>
+                  book.mutate(
+                    { departmentId: selectedDepartment.id, slotAt: slotAt!, ...details },
+                    {
+                      onSuccess: (appointment) => {
+                        if (!appointment) return;
+                        void navigate({
+                          to: "/booking/$reference",
+                          params: { reference: appointment.reference },
+                          search: {},
+                        });
+                      },
+                    },
+                  )
+                }
               />
             )}
           </Step>
@@ -202,13 +210,3 @@ function BookingPage() {
     </>
   );
 }
-
-
-
-
-
-
-
-
-
-
