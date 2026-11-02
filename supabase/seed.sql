@@ -4,7 +4,7 @@
 --   * Staff with real logins (password for all: Waitless@2026)
 --   * 14 patients with allergies / history
 --   * A busy "today", upcoming bookings, and visit notes
---   * ~90 days of appointment history for the admin analytics
+--   * ~180 days of appointment history for the admin analytics
 --
 -- Dates are relative to the day you run the reset (Lagos time), so the
 -- data always looks current.
@@ -168,8 +168,11 @@ WHERE id = 'aaaaaaaa-0000-4000-8000-000000000011';
 -- Patients (phones are normalised to +234 by a trigger)
 -- =========================================
 
-INSERT INTO public.patients (id, full_name, phone, email)
-VALUES
+-- Registered before the history starts, a few days apart.
+INSERT INTO public.patients (id, full_name, phone, email, created_at)
+SELECT v.id::UUID, v.full_name, v.phone, v.email,
+    pg_temp.at(-230 + (row_number() OVER ())::INTEGER * 3, '09:00')
+FROM (VALUES
     ('bbbbbbbb-0000-4000-8000-000000000001', 'Amaka Obi', '0803 123 4567', 'amaka.obi@gmail.com'),
     ('bbbbbbbb-0000-4000-8000-000000000002', 'Segun Adebayo', '0802 555 0142', NULL),
     ('bbbbbbbb-0000-4000-8000-000000000003', 'Halima Yusuf', '0706 111 8823', 'halima.y@yahoo.com'),
@@ -183,7 +186,8 @@ VALUES
     ('bbbbbbbb-0000-4000-8000-000000000011', 'Blessing Etim', '0708 993 4412', 'blessing.etim@gmail.com'),
     ('bbbbbbbb-0000-4000-8000-000000000012', 'Musa Danjuma', '0802 667 1193', NULL),
     ('bbbbbbbb-0000-4000-8000-000000000013', 'Ada Eze (child)', '0812 885 0034', 'eze.family@gmail.com'),
-    ('bbbbbbbb-0000-4000-8000-000000000014', 'Emeka Nwankwo', '0906 332 8819', NULL);
+    ('bbbbbbbb-0000-4000-8000-000000000014', 'Emeka Nwankwo', '0906 332 8819', NULL)
+) AS v(id, full_name, phone, email);
 
 -- Medical info rows are created by a trigger with allergies 'Unknown'.
 UPDATE public.patient_medical_info AS m
@@ -281,11 +285,11 @@ VALUES
 
 
 -- =========================================
--- 90 days of history for the admin analytics
+-- 180 days of history for the admin analytics
 -- =========================================
 -- Finished appointments only (completed, no-show, cancelled), so they never
 -- clash with the double-booking constraints. Waits shrink over time to tell
--- the "Waitless is working" story: ~20 min three months ago, ~10 min now.
+-- the "Waitless is working" story: ~22 min six months ago, ~8 min now.
 
 WITH slots AS MATERIALIZED (
     SELECT
@@ -304,7 +308,7 @@ WITH slots AS MATERIALIZED (
             WHEN 'Obstetrics & Gynaecology' THEN 0.5
             ELSE 0.4
         END AS demand
-    FROM generate_series(2, 90) AS d(days_ago)
+    FROM generate_series(2, 180) AS d(days_ago)
     CROSS JOIN public.staff AS s
     JOIN public.departments AS dep ON dep.id = s.department_id
     CROSS JOIN unnest(ARRAY['08:40', '09:20', '10:00', '10:40', '11:20', '13:00', '13:40', '14:20', '15:00', '15:40', '16:20']::TIME[]) AS t(slot)
@@ -318,7 +322,7 @@ booked AS MATERIALIZED (
         *,
         CASE WHEN r_status < 0.06 THEN 'no_show' WHEN r_status < 0.10 THEN 'cancelled' ELSE 'completed' END AS status,
         slot_at - (4 + r_patient * 10) * INTERVAL '1 minute' AS checked_in_at,
-        (4 + days_ago * 0.16 + r_wait * 8) * INTERVAL '1 minute' AS wait,
+        (4 + days_ago * 0.08 + r_wait * 8) * INTERVAL '1 minute' AS wait,
         (28 + r_length * 10) * INTERVAL '1 minute' AS duration,
         (ARRAY[
             'bbbbbbbb-0000-4000-8000-000000000001', 'bbbbbbbb-0000-4000-8000-000000000002', 'bbbbbbbb-0000-4000-8000-000000000003',

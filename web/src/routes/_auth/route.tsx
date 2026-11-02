@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { Clock, Stethoscope, UserCheck } from "lucide-react";
+import { Stethoscope, UserCheck } from "lucide-react";
 import Logo from "@/shared/logo/logo";
+import { WaitTrend } from "./-components/wait-trend";
 
 export const Route = createFileRoute("/_auth")({
   component: AuthLayout,
@@ -71,10 +72,7 @@ function BrandPanel() {
         </div>
       </div>
 
-      <p className="relative flex items-center gap-2 text-sm text-brand-100">
-        <Clock className="size-4" aria-hidden />
-        Average wait down from 31 to 14 minutes in 3 months.
-      </p>
+      <WaitTrend />
     </aside>
   );
 }

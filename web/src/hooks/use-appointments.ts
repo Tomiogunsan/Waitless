@@ -20,7 +20,6 @@ export function useDayAppointments(date: string) {
   return useQuery({
     queryKey: appointmentKeys.day(date),
     queryFn: () => getDayAppointments(date),
-    refetchInterval: 30_000, 
   });
 }
 
@@ -37,7 +36,6 @@ export function usePhysicianDay(physicianId: string | undefined, date: string | 
     queryKey: appointmentKeys.physicianDay(physicianId ?? "", date ?? ""),
     queryFn: () => getPhysicianDay(physicianId!, date!),
     enabled: Boolean(physicianId && date),
-    refetchInterval: 30_000,
   });
 }
 

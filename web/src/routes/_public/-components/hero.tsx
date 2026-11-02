@@ -1,6 +1,10 @@
 import { Activity, Check } from "lucide-react";
+import { useWaitTimeSummary } from "@/hooks/use-analytics";
+import { pluralize } from "@/utils/format";
 
 export function Hero() {
+  const { data: wait } = useWaitTimeSummary();
+
   return (
     <section className="relative overflow-hidden bg-brand-600 pb-28 text-white">
       <div
@@ -12,10 +16,12 @@ export function Hero() {
         className="absolute inset-0 opacity-[0.07] bg-[linear-gradient(white_1px,transparent_1px),linear-gradient(90deg,white_1px,transparent_1px)] bg-size-[32px_32px]"
       />
       <div className="relative mx-auto max-w-6xl px-4 pt-14 sm:px-6 sm:pt-20">
-        <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium ring-1 ring-white/20 backdrop-blur">
-          <Activity className="size-3.5" aria-hidden />
-          Average wait this week: 14 minutes
-        </p>
+        {wait?.recentMinutes != null && (
+          <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium ring-1 ring-white/20 backdrop-blur">
+            <Activity className="size-3.5" aria-hidden />
+            Average wait this week: {pluralize(wait.recentMinutes, "minute")}
+          </p>
+        )}
         <h1 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
           See a doctor, not a waiting room.
         </h1>

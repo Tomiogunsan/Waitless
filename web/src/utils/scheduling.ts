@@ -1,6 +1,6 @@
 import type { BookedTime } from "@/types/appointment";
 import type { Slot } from "@/types/booking";
-import type { Appointment, AppointmentStatus } from "@/types/clinic";
+import type { AppointmentStatus } from "@/types/clinic";
 import { APPOINTMENT_MINUTES, SLOT_TIMES, atClinicTime, clinicToday } from "./time";
 
 export const ACTIVE_STATUSES: AppointmentStatus[] = ["scheduled", "checked_in", "in_progress"];
@@ -11,7 +11,6 @@ export function isActive(appointment: { status: AppointmentStatus }): boolean {
   return ACTIVE_STATUSES.includes(appointment.status);
 }
 
-
 export function isOnDate(iso: string, date: string): boolean {
   return clinicToday(new Date(iso)) === date;
 }
@@ -21,20 +20,6 @@ export function overlaps(a: string, b: string): boolean {
   const start = new Date(a).getTime();
   const other = new Date(b).getTime();
   return start < other + BLOCK_MS && other < start + BLOCK_MS;
-}
-
-
-
-
-export function isPhysicianFree(
-  appointments: Appointment[],
-  physicianId: string,
-  slotAt: string,
-  excludeAppointmentId?: string,
-): boolean {
-  return !appointments.some(
-    (a) => a.physician_id === physicianId && a.id !== excludeAppointmentId && isActive(a) && overlaps(a.scheduled_at, slotAt),
-  );
 }
 
 

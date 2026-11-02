@@ -10,6 +10,7 @@ export interface StaffAppointment {
   startedAt: string | null;
   endedAt: string | null;
   needsReview: boolean;
+  cancellationReason: string | null;
   patient: { id: string; fullName: string; phone: string; email: string | null };
   physician: { id: string; fullName: string };
   department: { id: string; name: string };

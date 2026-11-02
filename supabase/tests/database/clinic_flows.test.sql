@@ -11,7 +11,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(66);
+SELECT plan(77);
 
 
 -- =========================================
@@ -620,6 +620,54 @@ SELECT throws_ok(
     'Front desk cannot see visit history'
 );
 
+-- The patient directory runs with the caller's permissions.
+RESET ROLE;
+INSERT INTO tests.ctx (key, val)
+SELECT 'c2_patients', count(DISTINCT patient_id)::TEXT
+FROM public.appointments
+WHERE physician_id = '00000000-0000-0000-0000-0000000000c2'
+  AND status <> 'cancelled';
+
+SELECT tests.authenticate_as('00000000-0000-0000-0000-0000000000b1');
+
+SELECT results_eq(
+    $$SELECT last_visit_at, next_appointment_at
+      FROM public.patient_directory
+      WHERE id = '00000000-0000-0000-0000-0000000000e1'$$,
+    $$SELECT
+        (SELECT scheduled_at FROM public.appointments
+         WHERE id = '00000000-0000-0000-0000-0000000000f1'),
+        tests.monday_at('15:00')$$,
+    'Front desk sees a patient''s last visit and next appointment'
+);
+
+RESET ROLE;
+SELECT tests.authenticate_as('00000000-0000-0000-0000-0000000000c2');
+
+SELECT results_eq(
+    $$SELECT last_visit_at, next_appointment_at
+      FROM public.patient_directory
+      WHERE id = '00000000-0000-0000-0000-0000000000e1'$$,
+    $$VALUES (NULL::TIMESTAMPTZ, tests.monday_at('15:00'))$$,
+    'A physician only sees dates from their own appointments'
+);
+
+SELECT is(
+    (SELECT count(*) FROM public.patient_directory)::TEXT,
+    (SELECT val FROM tests.ctx WHERE key = 'c2_patients'),
+    'A physician only sees the patients they treat'
+);
+
+RESET ROLE;
+SELECT tests.authenticate_as_anon();
+
+SELECT throws_ok(
+    'SELECT * FROM public.patient_directory',
+    '42501',
+    NULL,
+    'Visitors cannot read the patient directory'
+);
+
 -- Remove the extra appointment so later sections see Dr Two's usual day.
 RESET ROLE;
 DELETE FROM public.appointments WHERE id = '00000000-0000-0000-0000-0000000000f9';
@@ -879,6 +927,94 @@ SELECT is(
     10::BIGINT,
     'A new physician gets working hours automatically after a role change'
 );
+
+
+-- =========================================
+-- 7. Admin reporting
+-- =========================================
+
+INSERT INTO tests.ctx (key, val)
+VALUES
+    ('staff_count', (SELECT count(*) FROM public.staff)::TEXT),
+    ('today_total', (
+        SELECT count(*) FROM public.appointments
+        WHERE (scheduled_at AT TIME ZONE 'Africa/Lagos')::DATE = (now() AT TIME ZONE 'Africa/Lagos')::DATE
+    )::TEXT),
+    ('today_completed', (
+        SELECT count(*) FROM public.appointments
+        WHERE (scheduled_at AT TIME ZONE 'Africa/Lagos')::DATE = (now() AT TIME ZONE 'Africa/Lagos')::DATE
+          AND status = 'completed'
+    )::TEXT);
+
+SELECT tests.authenticate_as('00000000-0000-0000-0000-0000000000a1');
+
+SELECT is(
+    (SELECT count(*) FROM public.get_staff_directory())::TEXT,
+    (SELECT val FROM tests.ctx WHERE key = 'staff_count'),
+    'An admin sees every staff member'
+);
+
+SELECT results_eq(
+    $$SELECT email, invite_pending FROM public.get_staff_directory()
+      WHERE id IN ('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000c4')
+      ORDER BY email$$,
+    $$VALUES ('doc1@test.local'::TEXT, FALSE), ('invited@test.local'::TEXT, TRUE)$$,
+    'The staff directory shows emails and pending invites'
+);
+
+SELECT results_eq(
+    $$SELECT sum(appointments)::TEXT, sum(completed)::TEXT
+      FROM public.get_appointment_stats(
+          (now() AT TIME ZONE 'Africa/Lagos')::DATE,
+          (now() AT TIME ZONE 'Africa/Lagos')::DATE)$$,
+    $$SELECT
+        (SELECT val FROM tests.ctx WHERE key = 'today_total'),
+        (SELECT val FROM tests.ctx WHERE key = 'today_completed')$$,
+    'Daily statistics match the appointments table'
+);
+
+SELECT throws_ok(
+    $$SELECT * FROM public.get_appointment_stats('2026-02-01', '2026-01-01')$$,
+    'P0001',
+    'Choose a valid date range',
+    'Statistics need a valid date range'
+);
+
+RESET ROLE;
+SELECT tests.authenticate_as('00000000-0000-0000-0000-0000000000c1');
+
+SELECT throws_ok(
+    'SELECT * FROM public.get_staff_directory()',
+    'P0001',
+    'Only administrators can view the staff directory',
+    'A physician cannot see the staff directory'
+);
+
+SELECT throws_ok(
+    $$SELECT * FROM public.get_appointment_stats(CURRENT_DATE, CURRENT_DATE)$$,
+    'P0001',
+    'Only administrators can view appointment statistics',
+    'A physician cannot see appointment statistics'
+);
+
+RESET ROLE;
+
+INSERT INTO tests.ctx (key, val)
+SELECT 'recent_wait', COALESCE(round(avg(
+    EXTRACT(EPOCH FROM actual_started_at - checked_in_at) / 60))::INTEGER::TEXT, 'none')
+FROM public.appointments
+WHERE checked_in_at IS NOT NULL
+  AND actual_started_at >= now() - INTERVAL '7 days';
+
+SELECT tests.authenticate_as_anon();
+
+SELECT is(
+    (SELECT COALESCE(recent_minutes::TEXT, 'none') FROM public.get_wait_time_summary()),
+    (SELECT val FROM tests.ctx WHERE key = 'recent_wait'),
+    'Visitors can see this week''s average wait'
+);
+
+RESET ROLE;
 
 
 SELECT * FROM finish();

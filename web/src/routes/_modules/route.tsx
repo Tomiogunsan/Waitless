@@ -21,6 +21,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { useLiveAppointments } from "@/hooks/use-live-appointments";
 import Avatar from "@/shared/avatar/avatar";
 import {
   DropdownMenu,
@@ -78,6 +79,7 @@ function StaffLayout() {
   const [menuOpenOn, setMenuOpenOn] = useState<string | null>(null);
   const menuOpen = menuOpenOn === pathname;
   const setMenuOpen = (open: boolean) => setMenuOpenOn(open ? pathname : null);
+  useLiveAppointments(Boolean(role));
 
   if (!role) return null;
 

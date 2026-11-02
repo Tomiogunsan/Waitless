@@ -28,6 +28,16 @@ export async function getAppointment(appointmentId: string): Promise<StaffAppoin
   return data && toAppointment(data as AppointmentRow);
 }
 
+export async function getPatientAppointments(patientId: string): Promise<StaffAppointment[]> {
+  const { data, error } = await supabase
+    .from("appointments")
+    .select(APPOINTMENT_SELECT)
+    .eq("patient_id", patientId)
+    .order("scheduled_at", { ascending: false });
+  if (error) fail(error);
+  return (data as AppointmentRow[]).map(toAppointment);
+}
+
 export async function getPhysicianDay(physicianId: string, date: string): Promise<StaffAppointment[]> {
   const { start, end } = clinicDayRange(date);
   const { data, error } = await supabase

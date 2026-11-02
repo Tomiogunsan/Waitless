@@ -10,25 +10,18 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { DEPARTMENT_COLORS } from "@/utils/chart-colors";
+import type { ChartSeries, DailyPoint } from "@/types/analytics";
 import { formatDate } from "@/utils/time";
-import type { DailyStats } from "@/mocks/analytics";
-
 
 const GRID = "#e2e8f0";
 const TICK = { fill: "#64748b", fontSize: 12 };
 
-export interface Series {
-  id: string;
-  name: string;
-}
-
-export function Legend({ series }: { series: Series[] }) {
+export function Legend({ series }: { series: ChartSeries[] }) {
   return (
     <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
       {series.map((s) => (
         <li key={s.id} className="flex items-center gap-1.5 text-xs text-slate-600">
-          <span className="size-2.5 rounded-[3px]" style={{ background: DEPARTMENT_COLORS[s.id] }} aria-hidden />
+          <span className="size-2.5 rounded-[3px]" style={{ background: s.color }} aria-hidden />
           {s.name}
         </li>
       ))}
@@ -55,8 +48,8 @@ function TooltipCard({ title, rows, footer }: { title: string; rows: { color?: s
 }
 
 /** Appointments per day, stacked by department. */
-export function AppointmentsChart({ data, series }: { data: DailyStats[]; series: Series[] }) {
-  const rows = data.map((d) => ({ date: d.date, ...d.byDepartment }));
+export function AppointmentsChart({ data, series }: { data: DailyPoint[]; series: ChartSeries[] }) {
+  const rows = data.map((d) => ({ date: d.date, ...d.counts }));
   const many = rows.length > 30;
 
   return (
@@ -81,7 +74,7 @@ export function AppointmentsChart({ data, series }: { data: DailyStats[]; series
               <TooltipCard
                 title={formatDate(String(label), "weekday")}
                 rows={[...payload].reverse().map((p) => ({
-                  color: DEPARTMENT_COLORS[String(p.dataKey)],
+                  color: series.find((s) => s.id === p.dataKey)?.color,
                   label: series.find((s) => s.id === p.dataKey)?.name ?? String(p.dataKey),
                   value: String(p.value),
                 }))}
@@ -95,7 +88,7 @@ export function AppointmentsChart({ data, series }: { data: DailyStats[]; series
             key={s.id}
             dataKey={s.id}
             stackId="appointments"
-            fill={DEPARTMENT_COLORS[s.id]}
+            fill={s.color}
             stroke="#fff"
             strokeWidth={many ? 0.5 : 1}
             maxBarSize={24}
@@ -109,7 +102,7 @@ export function AppointmentsChart({ data, series }: { data: DailyStats[]; series
 }
 
 /** Average wait from check-in to being seen, with the clinic's 15-minute target. */
-export function WaitTimeChart({ data }: { data: DailyStats[] }) {
+export function WaitTimeChart({ data }: { data: DailyPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={220}>
       <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
@@ -146,6 +139,7 @@ export function WaitTimeChart({ data }: { data: DailyStats[] }) {
           strokeWidth={2}
           fill="url(#wait-fill)"
           activeDot={{ r: 5, stroke: "#fff", strokeWidth: 2 }}
+          connectNulls
           isAnimationActive={false}
         />
       </AreaChart>

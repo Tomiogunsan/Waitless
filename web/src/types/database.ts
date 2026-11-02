@@ -57,6 +57,12 @@ isOneToOne: false
       foreignKeyName: "appointments_patient_id_fkey"
       columns: ["patient_id"]
 isOneToOne: false
+      referencedRelation: "patient_directory"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "appointments_patient_id_fkey"
+      columns: ["patient_id"]
+isOneToOne: false
       referencedRelation: "patients"
       referencedColumns: ["id"]
     },{
@@ -94,6 +100,12 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "patient_medical_info_patient_id_fkey"
+      columns: ["patient_id"]
+isOneToOne: true
+      referencedRelation: "patient_directory"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "patient_medical_info_patient_id_fkey"
       columns: ["patient_id"]
 isOneToOne: true
@@ -204,7 +216,21 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "patient_directory": {
+                  Row: {
+                    "created_at": string | null,"email": string | null,"full_name": string | null,"id": string | null,"last_visit_at": string | null,"next_appointment_at": string | null,"phone": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                           "created_at"?: string | null,"email"?: string | null,"full_name"?: string | null,"id"?: string | null,"last_visit_at"?: never,"next_appointment_at"?: never,"phone"?: string | null
+                         }
+                        Update: {
+                           "created_at"?: string | null,"email"?: string | null,"full_name"?: string | null,"id"?: string | null,"last_visit_at"?: never,"next_appointment_at"?: never,"phone"?: string | null
+                         }
+                        Relationships: [
+                    
+                  ]
+                }
           }
           Functions: {
             "appointment_time_range":
@@ -236,6 +262,11 @@ isOneToOne: false
 "current_staff_role":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"get_appointment_stats":
+{ Args: { "p_from": string,"p_to": string }; Returns: {
+              "appointments": number,"completed": number,"day": string,"department_id": string,"no_shows": number,"wait_minutes": number,"waited": number
+            }[]
+                           },
 "get_available_slots":
 { Args: { "p_date": string,"p_department_id": string }; Returns: {
               "is_available": boolean,"slot_at": string
@@ -249,6 +280,16 @@ isOneToOne: false
 "get_public_appointment":
 { Args: { "p_phone": string,"p_reference_code": string }; Returns: {
               "appointment_status": string,"appointment_time": string,"booking_reference": string,"department_name": string,"physician_name": string,"time_under_review": boolean
+            }[]
+                           },
+"get_staff_directory":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "created_at": string,"department_id": string,"email": string,"full_name": string,"id": string,"invite_pending": boolean,"is_active": boolean,"role": string
+            }[]
+                           },
+"get_wait_time_summary":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "earlier_minutes": number,"recent_minutes": number
             }[]
                            },
 "is_admin":
