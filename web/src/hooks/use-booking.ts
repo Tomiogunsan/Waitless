@@ -1,6 +1,6 @@
 import { bookAppointment, cancelPublicAppointment, getAvailableSlots, getDepartments, getPublicAppointment, reschedulePublicAppointment } from "@/services/booking-service";
 import type { ChangeBookingInput } from "@/services/types/interfaces/booking-interface";
-import type { BookAppointmentInput, PublicAppointment } from "@/types/booking";
+import type { BookAppointmentInput, BookedAppointment, PublicAppointment } from "@/types/booking";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -31,9 +31,10 @@ export function useAvailableSlots(departmentId: string | undefined, date: string
 export function useBookAppointment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: BookAppointmentInput) => {
+    mutationFn: async (input: BookAppointmentInput):Promise<BookedAppointment | null> => {
       const confirmation = await bookAppointment(input);
-      return getPublicAppointment(confirmation.reference, input.phone);
+        const appointment = await getPublicAppointment(confirmation.reference, input.phone);
+      return appointment && {...appointment, patientName: input.fullName.trim(), phone:input.phone}
     },
     onSuccess: (appointment) => {
       if (appointment) queryClient.setQueryData(bookingKeys.appointment(appointment.reference), appointment);

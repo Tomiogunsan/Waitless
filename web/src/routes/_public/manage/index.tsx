@@ -13,7 +13,7 @@ import {
 import { useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/shared/badge/appointment-status-badge";
-import { DateStrip, SlotGrid } from "@/shared/slot-picker/slot-picker";
+import { DateStrip, SlotGrid, SlotGridSkeleton } from "@/shared/slot-picker/slot-picker";
 import Button from "@/shared/button/button";
 import { buttonStyles } from "@/shared/button/button-styles";
 import {
@@ -29,15 +29,15 @@ import Alert from "@/shared/alert/alert";
 import { cn } from "@/utils/cn";
 import { isValidPhone } from "@/utils/format";
 import { bookableDates, formatDate, formatTimeRange } from "@/utils/time";
+import { DEMO_LOOKUP } from "@/constants/demo-accounts";
 import {
-  DEMO_LOOKUP,
-  departmentSummaries,
-  getAvailableSlots,
-  getPublicAppointment,
-  updateBooking,
-} from "@/mocks/public-booking";
-
-type Booking = NonNullable<ReturnType<typeof getPublicAppointment>>;
+  useAvailableSlots,
+  useCancelAppointment,
+  useDepartments,
+  useFindAppointment,
+  useRescheduleAppointment,
+} from "@/hooks/use-booking";
+import type { FoundBooking } from "@/types/booking";
 
 export const Route = createFileRoute("/_public/manage/")({
   validateSearch: (search: Record<string, unknown>): { ref?: string } => ({
@@ -48,19 +48,19 @@ export const Route = createFileRoute("/_public/manage/")({
 
 function ManageBookingPage() {
   const { ref } = Route.useSearch();
-  const [booking, setBooking] = useState<Booking | null>(null);
+  const [found, setFound] = useState<FoundBooking | null>(null);
 
   return (
     <div className="bg-linear-to-b from-brand-50 to-white">
       <div className="mx-auto max-w-xl px-4 py-12 sm:px-6 sm:py-16">
-        {booking ? (
+        {found ? (
           <BookingDetails
-            booking={booking}
-            onChange={setBooking}
-            onBack={() => setBooking(null)}
+            found={found}
+            onChange={setFound}
+            onBack={() => setFound(null)}
           />
         ) : (
-          <LookupForm initialReference={ref ?? ""} onFound={setBooking} />
+          <LookupForm initialReference={ref ?? ""} onFound={setFound} />
         )}
       </div>
     </div>
@@ -72,12 +72,12 @@ function LookupForm({
   onFound,
 }: {
   initialReference: string;
-  onFound: (booking: Booking) => void;
+  onFound: (found: FoundBooking) => void;
 }) {
   const [reference, setReference] = useState(initialReference);
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [searching, setSearching] = useState(false);
+  const { mutate: find, isPending } = useFindAppointment();
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -87,19 +87,21 @@ function LookupForm({
       );
       return;
     }
-    setSearching(true);
     setError(null);
-    window.setTimeout(() => {
-      setSearching(false);
-      const found = getPublicAppointment(reference, phone);
-      // Same message whether the code or the phone is wrong, so the form
-      // never reveals which bookings exist.
-      if (found) onFound(found);
-      else
-        setError(
-          "We couldn't find a booking with those details. Check both and try again.",
-        );
-    }, 500);
+    find(
+      { reference: reference.trim().toUpperCase(), phone },
+      {
+        onSuccess: (appointment) => {
+         
+          if (appointment) onFound({ appointment, phone });
+          else
+            setError(
+              "We couldn't find a booking with those details. Check both and try again.",
+            );
+        },
+        onError: (err) => setError(err.message),
+      },
+    );
   };
 
   return (
@@ -150,7 +152,7 @@ function LookupForm({
           )}
         </Field>
         {error && <Alert tone="danger" icon={AlertTriangle} title={error} />}
-        <Button type="submit" className="w-full" size="lg" loading={searching}>
+        <Button type="submit" className="w-full" size="lg" loading={isPending}>
           Find booking
         </Button>
       </form>
@@ -173,27 +175,28 @@ function LookupForm({
 }
 
 function BookingDetails({
-  booking,
+  found,
   onChange,
   onBack,
 }: {
-  booking: Booking;
-  onChange: (b: Booking) => void;
+  found: FoundBooking;
+  onChange: (found: FoundBooking) => void;
   onBack: () => void;
 }) {
-  const isActive = booking.appointment_status === "scheduled";
+  const { appointment } = found;
+  const isActive = appointment.status === "scheduled";
   const rows = [
-    { icon: Stethoscope, label: "Department", value: booking.department_name },
-    { icon: UserRound, label: "Doctor", value: booking.physician_name },
+    { icon: Stethoscope, label: "Department", value: appointment.departmentName },
+    { icon: UserRound, label: "Doctor", value: appointment.physicianName },
     {
       icon: CalendarCheck2,
       label: "Date",
-      value: formatDate(booking.appointment_time),
+      value: formatDate(appointment.appointmentTime),
     },
     {
       icon: Clock,
       label: "Time",
-      value: formatTimeRange(booking.appointment_time),
+      value: formatTimeRange(appointment.appointmentTime),
     },
   ];
 
@@ -211,18 +214,16 @@ function BookingDetails({
       <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-card">
         <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
           <div>
-            <p className="text-xs text-slate-500">
-              Booking for {booking.patient_name}
-            </p>
+            <p className="text-xs text-slate-500">Your booking</p>
             <p className="mt-0.5 font-mono text-lg font-semibold tracking-wide text-slate-900">
-              {booking.booking_reference}
+              {appointment.reference}
             </p>
           </div>
-          <StatusBadge status={booking.appointment_status} />
+          <StatusBadge status={appointment.status} />
         </div>
 
         <div className="space-y-5 px-6 py-5">
-          {booking.time_under_review && (
+          {appointment.timeUnderReview && (
             <Alert
               tone="warning"
               icon={CalendarClock}
@@ -253,8 +254,8 @@ function BookingDetails({
         <div className="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/60 px-6 py-4 sm:flex-row">
           {isActive ? (
             <>
-              <RescheduleDialog booking={booking} onDone={onChange} />
-              <CancelDialog booking={booking} onDone={onChange} />
+              <RescheduleDialog found={found} onDone={onChange} />
+              <CancelDialog found={found} onDone={onChange} />
             </>
           ) : (
             <Link to="/" className={cn(buttonStyles(), "w-full")}>
@@ -268,40 +269,43 @@ function BookingDetails({
 }
 
 function RescheduleDialog({
-  booking,
+  found,
   onDone,
 }: {
-  booking: Booking;
-  onDone: (b: Booking) => void;
+  found: FoundBooking;
+  onDone: (found: FoundBooking) => void;
 }) {
+  const { appointment, phone } = found;
   const dates = useMemo(() => bookableDates(), []);
-  const department = departmentSummaries.find(
-    (d) => d.name === booking.department_name,
-  )!;
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(dates[0]!);
   const [slotAt, setSlotAt] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const slots = useMemo(
-    () => getAvailableSlots(department.id, date),
-    [department.id, date],
+  // The lookup only returns the department's name; slots need its id.
+  const { data: departments = [] } = useDepartments();
+  const department = departments.find(
+    (d) => d.name === appointment.departmentName,
   );
+  const { data: slots = [], isPending: loadingSlots } = useAvailableSlots(
+    open ? department?.id : undefined,
+    date,
+  );
+  const { mutate: reschedule, isPending, error } = useRescheduleAppointment();
 
   const confirm = () => {
     if (!slotAt) return;
-    setSaving(true);
-    window.setTimeout(() => {
-      const updated = updateBooking(booking.booking_reference, {
-        appointment_time: slotAt,
-        time_under_review: false,
-      })!;
-      setSaving(false);
-      setOpen(false);
-      onDone(updated);
-      toast.success("Appointment moved", {
-        description: `${formatDate(slotAt)}, ${formatTimeRange(slotAt)}`,
-      });
-    }, 600);
+    reschedule(
+      { reference: appointment.reference, phone, newSlotAt: slotAt },
+      {
+        onSuccess: (updated) => {
+          if (!updated) return;
+          setOpen(false);
+          onDone({ appointment: updated, phone });
+          toast.success("Appointment moved", {
+            description: `${formatDate(slotAt)}, ${formatTimeRange(slotAt)}`,
+          });
+        },
+      },
+    );
   };
 
   return (
@@ -313,7 +317,7 @@ function RescheduleDialog({
       <DialogContent
         size="lg"
         title="Choose a new time"
-        description={`${booking.department_name} · a free doctor will be assigned`}
+        description={`${appointment.departmentName} · a free doctor will be assigned`}
       >
         <div className="space-y-6">
           <DateStrip
@@ -324,13 +328,24 @@ function RescheduleDialog({
               setSlotAt(null);
             }}
           />
-          <SlotGrid slots={slots} value={slotAt} onChange={setSlotAt} />
+          {loadingSlots ? (
+            <SlotGridSkeleton />
+          ) : (
+            <SlotGrid slots={slots} value={slotAt} onChange={setSlotAt} />
+          )}
+          {error && (
+            <Alert
+              tone="danger"
+              icon={AlertTriangle}
+              title={error.message}
+            />
+          )}
         </div>
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="secondary">Keep current time</Button>
           </DialogClose>
-          <Button onClick={confirm} disabled={!slotAt} loading={saving}>
+          <Button onClick={confirm} disabled={!slotAt} loading={isPending}>
             Move appointment
           </Button>
         </DialogFooter>
@@ -340,29 +355,31 @@ function RescheduleDialog({
 }
 
 function CancelDialog({
-  booking,
+  found,
   onDone,
 }: {
-  booking: Booking;
-  onDone: (b: Booking) => void;
+  found: FoundBooking;
+  onDone: (found: FoundBooking) => void;
 }) {
+  const { appointment, phone } = found;
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
-  const [saving, setSaving] = useState(false);
+  const { mutate: cancel, isPending, error } = useCancelAppointment();
 
   const confirm = () => {
-    setSaving(true);
-    window.setTimeout(() => {
-      const updated = updateBooking(booking.booking_reference, {
-        appointment_status: "cancelled",
-      })!;
-      setSaving(false);
-      setOpen(false);
-      onDone(updated);
-      toast("Appointment cancelled", {
-        description: "The slot has been released for other patients.",
-      });
-    }, 600);
+    cancel(
+      { reference: appointment.reference, phone, reason: reason.trim() },
+      {
+        onSuccess: (updated) => {
+          if (!updated) return;
+          setOpen(false);
+          onDone({ appointment: updated, phone });
+          toast("Appointment cancelled", {
+            description: "The slot has been released for other patients.",
+          });
+        },
+      },
+    );
   };
 
   return (
@@ -378,7 +395,7 @@ function CancelDialog({
       <DialogContent
         size="sm"
         title="Cancel this appointment?"
-        description={`${formatDate(booking.appointment_time)}, ${formatTimeRange(booking.appointment_time)} with ${booking.physician_name}.`}
+        description={`${formatDate(appointment.appointmentTime)}, ${formatTimeRange(appointment.appointmentTime)} with ${appointment.physicianName}.`}
       >
         <Field
           label="Reason"
@@ -395,11 +412,18 @@ function CancelDialog({
             />
           )}
         </Field>
+        {error && (
+          <Alert
+            tone="danger"
+            icon={AlertTriangle}
+            title={error.message}
+          />
+        )}
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="secondary">Keep appointment</Button>
           </DialogClose>
-          <Button variant="danger" onClick={confirm} loading={saving}>
+          <Button variant="danger" onClick={confirm} loading={isPending}>
             Cancel appointment
           </Button>
         </DialogFooter>

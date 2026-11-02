@@ -8,3 +8,5 @@ export const DEMO_ACCOUNTS: Record<StaffRole, string> = {
   physician: "adaeze@waitless.health",
   admin: "folake@waitless.health",
 };
+
+export const DEMO_LOOKUP = { reference: "CLN-7F3A9C21B4E8", phone: "0803 123 4567" };

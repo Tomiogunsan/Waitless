@@ -17,31 +17,42 @@ import Button from "@/shared/button/button";
 import { buttonStyles } from "@/shared/button/button-styles";
 import EmptyState from "@/shared/empty-state/empty-state";
 import { cn } from "@/utils/cn";
-import { formatPhone } from "@/utils/format";
+import { formatPhone, normalizePhone } from "@/utils/format";
 import { APPOINTMENT_MINUTES, formatDate, formatTimeRange } from "@/utils/time";
-import { getBooking } from "@/mocks/public-booking";
+import { bookingKeys } from "@/hooks/use-booking";
+import type { BookedAppointment } from "@/types/booking";
 
 export const Route = createFileRoute("/_public/booking/$reference/")({
-  loader: ({ params }) => {
-    const booking = getBooking(params.reference);
+  loader: ({ context, params }) => {
+    // Stored by useBookAppointment just before navigating here.
+    const booking = context.queryClient.getQueryData<BookedAppointment>(
+      bookingKeys.appointment(params.reference),
+    );
     if (!booking) throw notFound();
     return booking;
   },
   component: ConfirmationPage,
-  notFoundComponent: () => (
-    <div className="mx-auto max-w-lg px-4 py-16">
-      <EmptyState
-        icon={FileQuestion}
-        title="We couldn't find that booking"
-        description="Check the reference code in your confirmation, or look the booking up with your phone number."
-        action={
-          <Link to="/manage" className={buttonStyles()}>
-            Find my booking
-          </Link>
-        }
-      />
-    </div>
-  ),
+  notFoundComponent: () => {
+    const { reference } = Route.useParams();
+    return (
+      <div className="mx-auto max-w-lg px-4 py-16">
+        <EmptyState
+          icon={FileQuestion}
+          title="Look up your booking"
+          description="For your privacy, booking details only show right after you book. Enter your phone number to see this booking."
+          action={
+            <Link
+              to="/manage"
+              search={{ ref: reference }}
+              className={buttonStyles()}
+            >
+              Find my booking
+            </Link>
+          }
+        />
+      </div>
+    );
+  },
 });
 
 /** Builds a calendar file so patients can save the appointment. */
@@ -82,11 +93,12 @@ function downloadCalendarFile(
 
 function ConfirmationPage() {
   const booking = Route.useLoaderData();
+
   const [copied, setCopied] = useState(false);
 
   const copyReference = async () => {
     try {
-      await navigator.clipboard.writeText(booking.booking_reference);
+      await navigator.clipboard.writeText(booking.reference);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -95,23 +107,24 @@ function ConfirmationPage() {
   };
 
   const details = [
-    { icon: Stethoscope, label: "Department", value: booking.department_name },
-    { icon: UserRound, label: "Doctor", value: booking.physician_name },
+    { icon: Stethoscope, label: "Department", value: booking.departmentName },
+    { icon: UserRound, label: "Doctor", value: booking.physicianName },
     {
       icon: CalendarCheck2,
       label: "Date",
-      value: formatDate(booking.appointment_time),
+      value: formatDate(booking.appointmentTime),
     },
     {
       icon: Clock,
       label: "Time",
-      value: formatTimeRange(booking.appointment_time),
+      value: formatTimeRange(booking.appointmentTime),
     },
     {
       icon: IdCard,
       label: "Booked for",
-      value: `${booking.patient_name} · ${formatPhone(booking.phone)}`,
+      value: `${booking.patientName} · ${formatPhone(normalizePhone(booking.phone))}`,
     },
+
     {
       icon: MapPin,
       label: "Where",
@@ -145,7 +158,7 @@ function ConfirmationPage() {
                 Booking reference
               </p>
               <p className="mt-1 font-mono text-2xl font-semibold tracking-wider">
-                {booking.booking_reference}
+                {booking.reference}
               </p>
             </div>
             <Button
@@ -182,9 +195,9 @@ function ConfirmationPage() {
               className="sm:flex-1"
               onClick={() =>
                 downloadCalendarFile(
-                  booking.booking_reference,
-                  booking.appointment_time,
-                  booking.department_name,
+                  booking.reference,
+                  booking.appointmentTime,
+                  booking.departmentName,
                 )
               }
             >
@@ -193,7 +206,7 @@ function ConfirmationPage() {
             </Button>
             <Link
               to="/manage"
-              search={{ ref: booking.booking_reference }}
+              search={{ ref: booking.reference }}
               className={cn(
                 buttonStyles({ variant: "secondary" }),
                 "sm:flex-1",

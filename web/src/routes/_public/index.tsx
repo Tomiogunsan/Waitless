@@ -46,7 +46,7 @@ function BookingPage() {
     selectedDate,
   );
 
-  const book = useBookAppointment();
+  const { mutate: book, isPending, error } = useBookAppointment();
   const [slotAt, setSlotAt] = useState<string | null>(null);
   const slotIsValid =
     slotAt !== null &&
@@ -178,10 +178,10 @@ function BookingPage() {
           >
             {slotIsValid && selectedDepartment && (
               <DetailsForm
-                saving={book.isPending}
-                error={book.error?.message}
+                saving={isPending}
+                error={error?.message}
                 onSubmit={(details) =>
-                  book.mutate(
+                  book(
                     { departmentId: selectedDepartment.id, slotAt: slotAt!, ...details },
                     {
                       onSuccess: (appointment) => {

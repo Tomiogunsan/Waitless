@@ -32,3 +32,14 @@ export interface PublicAppointment {
   physicianName: string;
   timeUnderReview: boolean;
 }
+
+
+export interface BookedAppointment extends PublicAppointment {
+  patientName: string;
+  phone: string;
+}
+
+export interface FoundBooking {
+  appointment: PublicAppointment;
+  phone: string;
+}

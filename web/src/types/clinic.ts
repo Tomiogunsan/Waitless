@@ -71,14 +71,3 @@ export interface VisitNote {
   created_at: string;
   updated_at: string;
 }
-
-
-/** One row of get_public_appointment(). */
-export interface PublicAppointment {
-  booking_reference: string;
-  appointment_time: string;
-  appointment_status: AppointmentStatus;
-  department_name: string;
-  physician_name: string;
-  time_under_review: boolean;
-}
