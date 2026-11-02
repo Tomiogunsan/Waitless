@@ -10,12 +10,12 @@ export interface StaffAppointment {
   startedAt: string | null;
   endedAt: string | null;
   needsReview: boolean;
-  patient: { id: string; fullName: string; phone: string };
+  patient: { id: string; fullName: string; phone: string; email: string | null };
   physician: { id: string; fullName: string };
   department: { id: string; name: string };
 }
 
-/** The fields the slot helpers need to tell whether a time is taken. */
+
 export type BookedTime = Pick<StaffAppointment, "id" | "status" | "scheduledAt">;
 
 export interface Physician {

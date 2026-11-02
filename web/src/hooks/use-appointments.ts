@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  bookForPatient, cancelAppointment, checkInAppointment, getDayAppointments,
+  bookForPatient, cancelAppointment, checkInAppointment, getAppointment, getDayAppointments,
   getPhysicianDay, getPhysicians, markNoShow, reassignAppointment,
   rescheduleAppointment, searchPatients,
 } from "@/services/appointment-service";
@@ -9,6 +9,7 @@ import { bookingKeys } from "./use-booking";
 export const appointmentKeys = {
   all: ["appointments"] as const,
   day: (date: string) => [...appointmentKeys.all, "day", date] as const,
+  detail: (appointmentId: string) => [...appointmentKeys.all, "detail", appointmentId] as const,
   physicianDay: (physicianId: string, date: string) =>
     [...appointmentKeys.all, "physician-day", physicianId, date] as const,
   physicians: () => [...appointmentKeys.all, "physicians"] as const,
@@ -24,11 +25,19 @@ export function useDayAppointments(date: string) {
 }
 
 
+export function useAppointment(appointmentId: string) {
+  return useQuery({
+    queryKey: appointmentKeys.detail(appointmentId),
+    queryFn: () => getAppointment(appointmentId),
+  });
+}
+
 export function usePhysicianDay(physicianId: string | undefined, date: string | null) {
   return useQuery({
     queryKey: appointmentKeys.physicianDay(physicianId ?? "", date ?? ""),
     queryFn: () => getPhysicianDay(physicianId!, date!),
     enabled: Boolean(physicianId && date),
+    refetchInterval: 30_000,
   });
 }
 

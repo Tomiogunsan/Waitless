@@ -241,6 +241,11 @@ isOneToOne: false
               "is_available": boolean,"slot_at": string
             }[]
                            },
+"get_patient_visit_history":
+{ Args: { "p_patient_id": string }; Returns: {
+              "appointment_id": string,"diagnosis": string,"physician_name": string,"prescription": string,"symptoms": string,"visit_at": string
+            }[]
+                           },
 "get_public_appointment":
 { Args: { "p_phone": string,"p_reference_code": string }; Returns: {
               "appointment_status": string,"appointment_time": string,"booking_reference": string,"department_name": string,"physician_name": string,"time_under_review": boolean
@@ -294,6 +299,9 @@ isOneToOne: false
                            },
 "set_staff_active":
 { Args: { "p_active": boolean,"p_staff_id": string }; Returns: undefined
+                           },
+"staff_has_joined":
+{ Args: { "p_staff_id": string }; Returns: boolean
                            },
 "start_consultation":
 { Args: { "p_appointment_id": string }; Returns: undefined

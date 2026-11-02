@@ -1,11 +1,12 @@
 import { AlertOctagon, FileText, HelpCircle, ShieldCheck } from "lucide-react";
 import Alert from "@/shared/alert/alert";
-import type { PatientMedicalInfo } from "@/types/clinic";
+import type { MedicalInfo } from "@/types/consultation";
+import { NO_KNOWN_ALLERGIES, UNKNOWN_ALLERGIES } from "@/utils/medical";
 
 /** Allergies shown prominently, as the user stories ask for physicians. */
-export function MedicalInfoCard({ info }: { info: PatientMedicalInfo }) {
-  const unknown = info.allergies === "Unknown";
-  const none = info.allergies === "None known";
+export function MedicalInfoCard({ info }: { info: MedicalInfo }) {
+  const unknown = info.allergies === UNKNOWN_ALLERGIES;
+  const none = info.allergies === NO_KNOWN_ALLERGIES;
 
   return (
     <div className="space-y-3">
@@ -25,7 +26,7 @@ export function MedicalInfoCard({ info }: { info: PatientMedicalInfo }) {
           <FileText className="size-3.5" aria-hidden />
           Medical history
         </p>
-        <p className="mt-1 text-sm text-slate-800">{info.medical_history ?? "Nothing recorded yet."}</p>
+        <p className="mt-1 text-sm text-slate-800">{info.medicalHistory ?? "Nothing recorded yet."}</p>
       </div>
     </div>
   );

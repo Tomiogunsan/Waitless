@@ -130,7 +130,15 @@ function PatientProfilePage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
-          {isPhysician && medical && <MedicalInfoCard info={medical} />}
+          {isPhysician && medical && (
+            <MedicalInfoCard
+              info={{
+                patientId: medical.patient_id,
+                allergies: medical.allergies,
+                medicalHistory: medical.medical_history,
+              }}
+            />
+          )}
 
           <Card>
             <CardHeader

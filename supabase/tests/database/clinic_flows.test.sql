@@ -5,13 +5,13 @@
 -- Fixed test IDs:
 --   Admins:      ...a1, ...a2        Front desk: ...b1
 --   Physicians:  ...c1, ...c2 (General Medicine), ...c3 (Dermatology)
---   Patients:    ...e1 - ...e5       Appointments: ...f1 - ...f5
+--   Patients:    ...e1 - ...e5       Appointments: ...f1 - ...f5, ...f9
 
 BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(63);
+SELECT plan(66);
 
 
 -- =========================================
@@ -574,6 +574,55 @@ SELECT is_empty(
 );
 
 RESET ROLE;
+
+-- Dr Two will see Patient X next week, so Dr Two may read Dr One's note.
+INSERT INTO public.appointments (
+    id, patient_id, physician_id, department_id, original_scheduled_at, scheduled_at
+)
+SELECT
+    '00000000-0000-0000-0000-0000000000f9',
+    '00000000-0000-0000-0000-0000000000e1',
+    '00000000-0000-0000-0000-0000000000c2',
+    (SELECT id FROM public.departments WHERE name = 'General Medicine'),
+    tests.monday_at('15:00'),
+    tests.monday_at('15:00');
+
+SELECT tests.authenticate_as('00000000-0000-0000-0000-0000000000c2');
+
+SELECT results_eq(
+    $$SELECT appointment_id, physician_name, diagnosis
+      FROM public.get_patient_visit_history('00000000-0000-0000-0000-0000000000e1')$$,
+    $$VALUES (
+        '00000000-0000-0000-0000-0000000000f1'::UUID,
+        (SELECT full_name FROM public.staff WHERE id = '00000000-0000-0000-0000-0000000000c1'),
+        'Common cold'::TEXT
+    )$$,
+    'A physician sees a colleague''s past visit for a patient they treat'
+);
+
+RESET ROLE;
+SELECT tests.authenticate_as('00000000-0000-0000-0000-0000000000c3');
+
+SELECT throws_ok(
+    $$SELECT * FROM public.get_patient_visit_history('00000000-0000-0000-0000-0000000000e1')$$,
+    'P0001',
+    'You do not treat this patient',
+    'A physician cannot see the history of a patient they do not treat'
+);
+
+RESET ROLE;
+SELECT tests.authenticate_as('00000000-0000-0000-0000-0000000000b1');
+
+SELECT throws_ok(
+    $$SELECT * FROM public.get_patient_visit_history('00000000-0000-0000-0000-0000000000e1')$$,
+    'P0001',
+    'Only physicians can view visit history',
+    'Front desk cannot see visit history'
+);
+
+-- Remove the extra appointment so later sections see Dr Two's usual day.
+RESET ROLE;
+DELETE FROM public.appointments WHERE id = '00000000-0000-0000-0000-0000000000f9';
 
 
 -- =========================================

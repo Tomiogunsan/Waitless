@@ -17,6 +17,17 @@ export async function getDayAppointments(date: string): Promise<StaffAppointment
   return (data as AppointmentRow[]).map(toAppointment);
 }
 
+
+export async function getAppointment(appointmentId: string): Promise<StaffAppointment | null> {
+  const { data, error } = await supabase
+    .from("appointments")
+    .select(APPOINTMENT_SELECT)
+    .eq("id", appointmentId)
+    .maybeSingle();
+  if (error) fail(error);
+  return data && toAppointment(data as AppointmentRow);
+}
+
 export async function getPhysicianDay(physicianId: string, date: string): Promise<StaffAppointment[]> {
   const { start, end } = clinicDayRange(date);
   const { data, error } = await supabase

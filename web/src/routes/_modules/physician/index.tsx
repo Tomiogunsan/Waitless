@@ -25,22 +25,25 @@ import PageHeader from "@/shared/page-header/page-header";
 import StatTile from "@/shared/stat-tile/stat-tile";
 import { cn } from "@/utils/cn";
 import { greeting } from "@/utils/constants";
-import { DEMO_TODAY, useDemoNow } from "@/utils/demo-clock";
 import { requireRole } from "@/utils/guards";
-import { useMockStaffId } from "@/utils/session";
-import { isOnDate, overlaps } from "@/utils/scheduling";
+import { useCurrentUser } from "@/utils/session";
+import { overlaps } from "@/utils/scheduling";
+import { hasKnownAllergy } from "@/utils/medical";
 import {
   APPOINTMENT_MINUTES,
   SLOT_TIMES,
   atClinicTime,
+  clinicToday,
   formatDate,
   formatDuration,
   formatTime,
   minutesBetween,
 } from "@/utils/time";
-import { getMedicalInfo, getStaff } from "@/mocks/clinic";
-import { appointmentStore, patientStore, useAppointments } from "@/mocks/store";
-import type { Appointment } from "@/types/clinic";
+import { usePhysicianDay } from "@/hooks/use-appointments";
+import { useDepartments } from "@/hooks/use-booking";
+import { useMedicalInfo, useStartConsultation } from "@/hooks/use-consultation";
+import { useNow } from "@/hooks/use-now";
+import type { StaffAppointment } from "@/types/appointment";
 
 export const Route = createFileRoute("/_modules/physician/")({
   beforeLoad: ({ context }) => requireRole(context.session, ["physician"]),
@@ -49,51 +52,49 @@ export const Route = createFileRoute("/_modules/physician/")({
 
 
 function PhysicianQueuePage() {
-  const ME = useMockStaffId()!;
-  const now = useDemoNow(1000);
+  const me = useCurrentUser()!;
+  const now = useNow(1000);
   const navigate = useNavigate();
-  const all = useAppointments();
-  const me = getStaff(ME)!;
+  const date = useMemo(() => clinicToday(), []);
+  const { data: mine = [], isError } = usePhysicianDay(me.id, date);
+  const { data: departments = [] } = useDepartments();
+  const { mutate: startConsultation, isPending: starting } =
+    useStartConsultation();
 
-  const mine = useMemo(
-    () =>
-      all
-        .filter(
-          (a) => a.physician_id === ME && isOnDate(a.scheduled_at, DEMO_TODAY),
-        )
-        .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)),
-    [all, ME],
-  );
   const current = mine.find((a) => a.status === "in_progress");
   const queue = mine
     .filter((a) => a.status === "checked_in")
-    .sort((a, b) => a.checked_in_at!.localeCompare(b.checked_in_at!));
+    .sort((a, b) => a.checkedInAt!.localeCompare(b.checkedInAt!));
+  const { data: medical = [] } = useMedicalInfo(
+    queue.map((a) => a.patient.id),
+  );
+  const department = departments.find((d) => d.id === me.departmentId)?.name;
   const seen = mine.filter((a) => a.status === "completed").length;
   const remaining = mine.filter((a) => a.status === "scheduled").length;
   const overrun = current
     ? minutesBetween(
         new Date(
-          new Date(current.scheduled_at).getTime() +
+          new Date(current.scheduledAt).getTime() +
             APPOINTMENT_MINUTES * 60_000,
         ),
         now,
       )
     : 0;
 
-  const start = (appointment: Appointment) => {
+  const start = (appointment: StaffAppointment) => {
     if (current) {
       toast.error("Finish your current consultation first", {
         description: "You can only see one patient at a time.",
       });
       return;
     }
-    appointmentStore.update(appointment.id, {
-      status: "in_progress",
-      actual_started_at: now.toISOString(),
-    });
-    void navigate({
-      to: "/physician/consultation/$appointmentId",
-      params: { appointmentId: appointment.id },
+    startConsultation(appointment.id, {
+      onSuccess: () =>
+        void navigate({
+          to: "/physician/consultation/$appointmentId",
+          params: { appointmentId: appointment.id },
+        }),
+      onError: (err) => toast.error(err.message),
     });
   };
 
@@ -101,9 +102,17 @@ function PhysicianQueuePage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow={<LiveIndicator label={`Live · ${formatTime(now)}`} />}
-        title={`${greeting(now)}, ${me.full_name.replace(/^Dr\.\s+(\w+).*/, "Dr. $1")}`}
-        description={`${formatDate(DEMO_TODAY)} · General Medicine`}
+        title={`${greeting(now)}, ${me.fullName.replace(/^Dr\.\s+(\w+).*/, "Dr. $1")}`}
+        description={[formatDate(date), department].filter(Boolean).join(" · ")}
       />
+
+      {isError && (
+        <Alert
+          tone="danger"
+          icon={AlertOctagon}
+          title="We couldn't load your appointments. Refresh to try again."
+        />
+      )}
 
       {overrun > 0 && (
         <Alert
@@ -124,7 +133,7 @@ function PhysicianQueuePage() {
           icon={Users}
           hint={
             queue[0]
-              ? `Longest ${formatDuration(minutesBetween(queue[0].checked_in_at!, now))}`
+              ? `Longest ${formatDuration(minutesBetween(queue[0].checkedInAt!, now))}`
               : "No one waiting"
           }
         />
@@ -147,7 +156,11 @@ function PhysicianQueuePage() {
           {current ? (
             <CurrentConsultation appointment={current} now={now} />
           ) : (
-            <NoCurrentConsultation next={queue[0]} onStart={start} />
+            <NoCurrentConsultation
+              next={queue[0]}
+              onStart={start}
+              starting={starting}
+            />
           )}
 
           <Card>
@@ -165,13 +178,11 @@ function PhysicianQueuePage() {
             ) : (
               <ol className="divide-y divide-slate-100 border-t border-slate-100">
                 {queue.map((a, index) => {
-                  const patient = patientStore.get(a.patient_id)!;
-                  const allergies = getMedicalInfo(a.patient_id)?.allergies;
-                  const hasAllergy =
-                    allergies &&
-                    allergies !== "None known" &&
-                    allergies !== "Unknown";
-                  const waited = minutesBetween(a.checked_in_at!, now);
+                  const { patient } = a;
+                  const hasAllergy = hasKnownAllergy(
+                    medical.find((m) => m.patientId === patient.id)?.allergies,
+                  );
+                  const waited = minutesBetween(a.checkedInAt!, now);
                   return (
                     <li
                       key={a.id}
@@ -183,18 +194,18 @@ function PhysicianQueuePage() {
                       >
                         {index + 1}
                       </span>
-                      <Avatar name={patient.full_name} size="md" />
+                      <Avatar name={patient.fullName} size="md" />
                       <div className="min-w-0 flex-1">
                         <Link
                           to="/patients/$patientId"
                           params={{ patientId: patient.id }}
                           className="font-semibold text-slate-900 hover:text-brand-700 hover:underline"
                         >
-                          {patient.full_name}
+                          {patient.fullName}
                         </Link>
                         <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                          <span>Booked {formatTime(a.scheduled_at)}</span>
-                          <span>Arrived {formatTime(a.checked_in_at!)}</span>
+                          <span>Booked {formatTime(a.scheduledAt)}</span>
+                          <span>Arrived {formatTime(a.checkedInAt!)}</span>
                           <span
                             className={cn(
                               "inline-flex items-center gap-1 font-medium",
@@ -220,7 +231,7 @@ function PhysicianQueuePage() {
                         }
                         size="sm"
                         onClick={() => start(a)}
-                        disabled={Boolean(current)}
+                        disabled={Boolean(current) || starting}
                       >
                         <PlayCircle aria-hidden />
                         Start consultation
@@ -233,7 +244,7 @@ function PhysicianQueuePage() {
           </Card>
         </div>
 
-        <DayTimeline appointments={mine} now={now} />
+        <DayTimeline appointments={mine} date={date} now={now} />
       </div>
     </div>
   );
@@ -243,13 +254,12 @@ function CurrentConsultation({
   appointment,
   now,
 }: {
-  appointment: Appointment;
+  appointment: StaffAppointment;
   now: Date;
 }) {
-  const patient = patientStore.get(appointment.patient_id)!;
+  const { patient } = appointment;
   const elapsed =
-    (now.getTime() - new Date(appointment.actual_started_at!).getTime()) /
-    60_000;
+    (now.getTime() - new Date(appointment.startedAt!).getTime()) / 60_000;
   const progress = Math.min(1, elapsed / 35);
   const over = elapsed > 35;
 
@@ -265,7 +275,7 @@ function CurrentConsultation({
       <div className="relative flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           <Avatar
-            name={patient.full_name}
+            name={patient.fullName}
             size="lg"
             className="bg-white/15 text-white ring-2 ring-white/30"
           />
@@ -274,10 +284,10 @@ function CurrentConsultation({
               <Stethoscope className="size-4" aria-hidden />
               In consultation
             </p>
-            <p className="text-xl font-semibold">{patient.full_name}</p>
+            <p className="text-xl font-semibold">{patient.fullName}</p>
             <p className="text-sm text-brand-100">
-              Booked for {formatTime(appointment.scheduled_at)} · started{" "}
-              {formatTime(appointment.actual_started_at!)}
+              Booked for {formatTime(appointment.scheduledAt)} · started{" "}
+              {formatTime(appointment.startedAt!)}
             </p>
           </div>
         </div>
@@ -324,9 +334,11 @@ function CurrentConsultation({
 function NoCurrentConsultation({
   next,
   onStart,
+  starting,
 }: {
-  next?: Appointment;
-  onStart: (a: Appointment) => void;
+  next?: StaffAppointment;
+  onStart: (a: StaffAppointment) => void;
+  starting: boolean;
 }) {
   return (
     <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50/40 p-6">
@@ -334,15 +346,14 @@ function NoCurrentConsultation({
         <p className="text-sm font-semibold text-slate-900">You're free</p>
         <p className="text-sm text-slate-500">
           {next
-            ? `${patientStore.get(next.patient_id)?.full_name} is next in the waiting room.`
+            ? `${next.patient.fullName} is next in the waiting room.`
             : "No one is waiting right now."}
         </p>
       </div>
       {next && (
-        <Button onClick={() => onStart(next)}>
+        <Button onClick={() => onStart(next)} loading={starting}>
           <PlayCircle aria-hidden />
-          Start with{" "}
-          {patientStore.get(next.patient_id)?.full_name.split(" ")[0]}
+          Start with {next.patient.fullName.split(" ")[0]}
         </Button>
       )}
     </section>
@@ -350,16 +361,18 @@ function NoCurrentConsultation({
 }
 
 type TimelineItem =
-  | { kind: "appointment"; at: string; appointment: Appointment }
+  | { kind: "appointment"; at: string; appointment: StaffAppointment }
   | { kind: "free"; at: string }
   | { kind: "lunch"; at: string };
 
 /** The physician's whole day: booked appointments, free slots and lunch. */
 function DayTimeline({
   appointments,
+  date,
   now,
 }: {
-  appointments: Appointment[];
+  appointments: StaffAppointment[];
+  date: string;
   now: Date;
 }) {
   const items: TimelineItem[] = [
@@ -367,20 +380,20 @@ function DayTimeline({
       .filter((a) => a.status !== "cancelled")
       .map((a) => ({
         kind: "appointment" as const,
-        at: a.scheduled_at,
+        at: a.scheduledAt,
         appointment: a,
       })),
-    ...SLOT_TIMES.map((t) => atClinicTime(DEMO_TODAY, t).toISOString())
+    ...SLOT_TIMES.map((t) => atClinicTime(date, t).toISOString())
       .filter(
         (at) =>
           !appointments.some(
-            (a) => a.status !== "cancelled" && overlaps(a.scheduled_at, at),
+            (a) => a.status !== "cancelled" && overlaps(a.scheduledAt, at),
           ),
       )
       .map((at) => ({ kind: "free" as const, at })),
     {
       kind: "lunch" as const,
-      at: atClinicTime(DEMO_TODAY, "12:00").toISOString(),
+      at: atClinicTime(date, "12:00").toISOString(),
     },
   ].sort((a, b) => a.at.localeCompare(b.at));
 
@@ -452,7 +465,6 @@ function TimelineRow({ item, past }: { item: TimelineItem; past: boolean }) {
   }
 
   const a = item.appointment;
-  const patient = patientStore.get(a.patient_id)!;
   const active = a.status === "in_progress";
   return (
     <div className="flex gap-3 py-1">
@@ -473,7 +485,7 @@ function TimelineRow({ item, past }: { item: TimelineItem; past: boolean }) {
             past && !active ? "text-slate-500" : "text-slate-900",
           )}
         >
-          {patient.full_name}
+          {a.patient.fullName}
         </span>
         <StatusBadge status={a.status} />
       </div>

@@ -4,8 +4,6 @@ import {
   ArrowRightLeft,
   CalendarClock,
   CalendarDays,
-  CheckCircle2,
-  Clock,
   Plus,
   Stethoscope,
   UserCheck,
@@ -17,16 +15,15 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/shared/badge/appointment-status-badge";
-import {
-  CancelAppointmentDialog,
-  NewAppointmentDialog,
-  ReassignDialog,
-  RescheduleDialog,
-} from "@/routes/_modules/front-desk/-components/dialogs";
+import { CancelAppointmentDialog } from "./-components/cancel-appointment-dialog";
+import { DoctorBoard } from "./-components/doctor-board";
+import { NewAppointmentDialog } from "./-components/new-appointment-dialog";
+import { ReassignDialog } from "./-components/reassign-dialog";
+import { RescheduleDialog } from "./-components/reschedule-dialog";
+import { WaitCell } from "./-components/wait-cell";
 import Avatar from "@/shared/avatar/avatar";
 import Button from "@/shared/button/button";
 import Select from "@/shared/select/select";
-import Badge from "@/shared/badge/badge";
 import Alert from "@/shared/alert/alert";
 import LiveIndicator from "@/shared/live-indicator/live-indicator";
 import PageHeader from "@/shared/page-header/page-header";
@@ -479,144 +476,5 @@ function FrontDeskPage() {
       )}
       <NewAppointmentDialog open={newOpen} onOpenChange={setNewOpen} />
     </div>
-  );
-}
-
-function WaitCell({
-  appointment: a,
-  now,
-}: {
-  appointment: StaffAppointment;
-  now: Date;
-}) {
-  if (a.status === "checked_in" && a.checkedInAt) {
-    const minutes = minutesBetween(a.checkedInAt, now);
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center gap-1.5",
-          minutes >= 20 && "font-medium text-amber-700",
-        )}
-      >
-        <Clock className="size-3.5" aria-hidden />
-        {formatDuration(minutes)}
-      </span>
-    );
-  }
-  if (a.status === "in_progress" && a.startedAt) {
-    return (
-      <span className="text-violet-700">
-        In for {formatDuration(minutesBetween(a.startedAt, now))}
-      </span>
-    );
-  }
-  if (a.status === "completed" && a.checkedInAt && a.startedAt) {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-slate-400">
-        <CheckCircle2 className="size-3.5" aria-hidden />
-        Waited{" "}
-        {formatDuration(minutesBetween(a.checkedInAt, a.startedAt))}
-      </span>
-    );
-  }
-  return <span className="text-slate-300">—</span>;
-}
-
-/** Each doctor at a glance: who they're with, who's waiting, how late they're running. */
-function DoctorBoard({
-  today,
-  now,
-}: {
-  today: StaffAppointment[];
-  now: Date;
-}) {
-  // Each appointment carries its doctor and department, so build the list from them.
-  const doctors = [
-    ...new Map(
-      today.map((a) => [
-        a.physician.id,
-        { ...a.physician, department: a.department.name },
-      ]),
-    ).values(),
-  ];
-
-  return (
-    <section aria-labelledby="doctors-heading">
-      <h2
-        id="doctors-heading"
-        className="mb-3 text-sm font-semibold text-slate-900"
-      >
-        Doctors today
-      </h2>
-      <div className="relative flex snap-x gap-3 overflow-x-auto pb-2 scrollbar-none">
-        {doctors.map((doctor) => {
-          const mine = today.filter((a) => a.physician.id === doctor.id);
-          const current = mine.find((a) => a.status === "in_progress");
-          const waiting = mine.filter((a) => a.status === "checked_in").length;
-          const lateBy = current?.startedAt
-            ? Math.max(0, minutesBetween(current.scheduledAt, current.startedAt))
-            : 0;
-          const remaining = mine.filter(
-            (a) => a.status === "scheduled" || a.status === "checked_in",
-          ).length;
-
-          return (
-            <article
-              key={doctor.id}
-              className="w-64 shrink-0 snap-start rounded-2xl border border-slate-200/80 bg-white p-4 shadow-card"
-            >
-              <div className="flex items-center gap-3">
-                <span className="relative">
-                  <Avatar name={doctor.fullName} size="md" />
-                  <span
-                    className={cn(
-                      "absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-white",
-                      current ? "bg-violet-500" : "bg-emerald-500",
-                    )}
-                    aria-hidden
-                  />
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-900">
-                    {doctor.fullName}
-                  </p>
-                  <p className="truncate text-xs text-slate-500">
-                    {doctor.department}
-                  </p>
-                </div>
-              </div>
-              <p className="mt-3 truncate text-sm text-slate-600">
-                {current ? (
-                  <>
-                    With{" "}
-                    <span className="font-medium text-slate-900">
-                      {current.patient.fullName}
-                    </span>{" "}
-                    ·{" "}
-                    {formatDuration(
-                      minutesBetween(current.startedAt!, now),
-                    )}
-                  </>
-                ) : (
-                  <span className="text-emerald-700">Available</span>
-                )}
-              </p>
-              <div className="mt-3 flex items-center gap-2 text-xs">
-                <Badge tone="brand">{waiting} waiting</Badge>
-                <Badge tone="neutral">{remaining} left today</Badge>
-                {lateBy >= 10 && (
-                  <span
-                    className="ml-auto inline-flex items-center gap-1 font-medium text-amber-700"
-                    title="Started the current appointment late"
-                  >
-                    <Clock className="size-3" aria-hidden />+{lateBy}m
-                  </span>
-                )}
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    </section>
   );
 }
