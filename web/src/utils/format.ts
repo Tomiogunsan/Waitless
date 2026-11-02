@@ -32,6 +32,21 @@ export function formatPhone(phone: string): string {
   return match ? `0${match[1]} ${match[2]} ${match[3]}` : phone;
 }
 
+/** Search text without the characters that would break a database filter. */
+export function searchText(query: string): string {
+  return query.replace(/[,()*%\\]/g, " ").trim();
+}
+
+/** "0803 123" → "803123", to match phones stored as +234803… */
+export function phoneSearchDigits(query: string): string {
+  return query.replace(/\D/g, "").replace(/^0/, "");
+}
+
+/** True if the query appears in the phone as displayed, ignoring spaces: "0803123" matches +2348031234567. */
+export function phoneMatches(phone: string, query: string): boolean {
+  return formatPhone(phone).replace(/\s/g, "").includes(query.replace(/\s/g, ""));
+}
+
 export function isValidEmail(input: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.trim());
 }

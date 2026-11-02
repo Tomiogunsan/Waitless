@@ -1,7 +1,12 @@
-import { Check, Search, Sparkles, UserPlus } from "lucide-react";
+import { AlertTriangle, Check, Search, Sparkles, UserPlus } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { DateStrip, SlotGrid } from "@/shared/slot-picker/slot-picker";
+import {
+  DateStrip,
+  SlotGrid,
+  SlotGridSkeleton,
+} from "@/shared/slot-picker/slot-picker";
+import Alert from "@/shared/alert/alert";
 import Avatar from "@/shared/avatar/avatar";
 import Badge from "@/shared/badge/badge";
 import Button from "@/shared/button/button";
@@ -14,31 +19,30 @@ import {
 import Field from "@/shared/form-field/form-field";
 import Select from "@/shared/select/select";
 import Textarea from "@/shared/textarea/textarea";
+import {
+  useBookForPatient,
+  useDayAppointments,
+  usePatientSearch,
+  usePhysicianDay,
+  usePhysicians,
+  useReassign,
+  useStaffCancel,
+  useStaffReschedule,
+} from "@/hooks/use-appointments";
+import { useDepartments } from "@/hooks/use-booking";
+import type { PatientSummary, StaffAppointment } from "@/types/appointment";
 import { cn } from "@/utils/cn";
-import { demoNow } from "@/utils/demo-clock";
 import { formatPhone } from "@/utils/format";
+import { isSlotFree, openSlots } from "@/utils/scheduling";
 import {
-  isPhysicianFree,
-  newReferenceCode,
-  physicianSlots,
-} from "@/utils/scheduling";
-import { bookableDates, formatDate, formatTimeRange } from "@/utils/time";
-import {
-  departments,
-  getDepartment,
-  getStaff,
-  physicians,
-} from "@/mocks/clinic";
-import {
-  appointmentStore,
-  patientStore,
-  useAppointments,
-  usePatients,
-} from "@/mocks/store";
-import type { Appointment } from "@/types/clinic";
+  bookableDates,
+  clinicToday,
+  formatDate,
+  formatTimeRange,
+} from "@/utils/time";
 
 interface AppointmentDialogProps {
-  appointment: Appointment | null;
+  appointment: StaffAppointment;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -47,30 +51,33 @@ export function ReassignDialog({
   appointment,
   onOpenChange,
 }: AppointmentDialogProps) {
-  const all = useAppointments();
   const [choice, setChoice] = useState<string>("auto");
+  const { data: physicians = [] } = usePhysicians();
+  // The page has already loaded this day, so this reads from the cache.
+  const { data: day = [] } = useDayAppointments(
+    clinicToday(new Date(appointment.scheduledAt)),
+  );
+  const { mutate: reassign, isPending, error } = useReassign();
 
-  const candidates = useMemo(() => {
-    if (!appointment) return [];
-    return physicians()
-      .filter(
-        (p) =>
-          p.department_id === appointment.department_id &&
-          p.id !== appointment.physician_id,
-      )
-      .map((p) => ({
-        physician: p,
-        free: isPhysicianFree(
-          all,
-          p.id,
-          appointment.scheduled_at,
-          appointment.id,
-        ),
-      }));
-  }, [all, appointment]);
+  const candidates = useMemo(
+    () =>
+      physicians
+        .filter(
+          (p) =>
+            p.departmentId === appointment.department.id &&
+            p.id !== appointment.physician.id,
+        )
+        .map((p) => ({
+          physician: p,
+          free: isSlotFree(
+            day.filter((a) => a.physician.id === p.id),
+            appointment.scheduledAt,
+            appointment.id,
+          ),
+        })),
+    [physicians, day, appointment],
+  );
 
-  if (!appointment) return null;
-  const patient = patientStore.get(appointment.patient_id)!;
   const firstFree = candidates.find((c) => c.free);
   const target =
     choice === "auto"
@@ -79,22 +86,31 @@ export function ReassignDialog({
 
   const confirm = () => {
     if (!target) return;
-    appointmentStore.update(appointment.id, {
-      physician_id: target.id,
-      reschedule_needs_review: false,
-      reschedule_review_reason: null,
-    });
-    toast.success(`Reassigned to ${target.full_name}`, {
-      description: `${patient.full_name} keeps the ${formatTimeRange(appointment.scheduled_at)} slot.`,
-    });
-    onOpenChange(false);
+    reassign(
+      {
+        appointmentId: appointment.id,
+        // "auto" lets the database pick the first free doctor.
+        physicianId: choice === "auto" ? undefined : target.id,
+      },
+      {
+        onSuccess: (newPhysicianId) => {
+          const name =
+            physicians.find((p) => p.id === newPhysicianId)?.fullName ??
+            target.fullName;
+          toast.success(`Reassigned to ${name}`, {
+            description: `${appointment.patient.fullName} keeps the ${formatTimeRange(appointment.scheduledAt)} slot.`,
+          });
+          onOpenChange(false);
+        },
+      },
+    );
   };
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent
         title="Reassign appointment"
-        description={`${patient.full_name} · ${formatTimeRange(appointment.scheduled_at)} · ${getDepartment(appointment.department_id)?.name}`}
+        description={`${appointment.patient.fullName} · ${formatTimeRange(appointment.scheduledAt)} · ${appointment.department.name}`}
       >
         <fieldset className="space-y-2">
           <legend className="mb-3 text-sm font-medium text-slate-700">
@@ -107,7 +123,7 @@ export function ReassignDialog({
             title="First available doctor"
             subtitle={
               firstFree
-                ? `Currently ${firstFree.physician.full_name}`
+                ? `Currently ${firstFree.physician.fullName}`
                 : "No one else is free at this time"
             }
             leading={
@@ -122,9 +138,9 @@ export function ReassignDialog({
               selected={choice === physician.id}
               onSelect={() => setChoice(physician.id)}
               disabled={!free}
-              title={physician.full_name}
+              title={physician.fullName}
               subtitle={free ? "Free at this time" : "Busy at this time"}
-              leading={<Avatar name={physician.full_name} />}
+              leading={<Avatar name={physician.fullName} />}
             />
           ))}
           {candidates.length === 0 && (
@@ -134,11 +150,14 @@ export function ReassignDialog({
             </p>
           )}
         </fieldset>
+        {error && (
+          <Alert tone="danger" icon={AlertTriangle} title={error.message} />
+        )}
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="secondary">Cancel</Button>
           </DialogClose>
-          <Button onClick={confirm} disabled={!target}>
+          <Button onClick={confirm} disabled={!target} loading={isPending}>
             Reassign
           </Button>
         </DialogFooter>
@@ -193,43 +212,38 @@ export function RescheduleDialog({
   appointment,
   onOpenChange,
 }: AppointmentDialogProps) {
-  const all = useAppointments();
   const dates = useMemo(() => bookableDates(), []);
   const [date, setDate] = useState(dates[0]!);
   const [slotAt, setSlotAt] = useState<string | null>(null);
-
-  if (!appointment) return null;
-  const patient = patientStore.get(appointment.patient_id)!;
-  const physician = getStaff(appointment.physician_id)!;
-  const slots = physicianSlots(
-    all,
-    physician.id,
+  const { data: doctorDay = [], isPending: loadingSlots } = usePhysicianDay(
+    appointment.physician.id,
     date,
-    demoNow(),
-    appointment.id,
   );
+  const { mutate: reschedule, isPending, error } = useStaffReschedule();
+  // The appointment being moved doesn't block its own new time.
+  const slots = openSlots(doctorDay, date, new Date(), appointment.id);
 
   const confirm = () => {
     if (!slotAt) return;
-    appointmentStore.update(appointment.id, {
-      scheduled_at: slotAt,
-      status: "scheduled",
-      checked_in_at: null,
-      reschedule_needs_review: false,
-      reschedule_review_reason: null,
-    });
-    toast.success("Appointment rescheduled", {
-      description: `${patient.full_name} · ${formatDate(slotAt, "weekday")}, ${formatTimeRange(slotAt)}`,
-    });
-    onOpenChange(false);
+    reschedule(
+      { appointmentId: appointment.id, slotAt },
+      {
+        onSuccess: () => {
+          toast.success("Appointment rescheduled", {
+            description: `${appointment.patient.fullName} · ${formatDate(slotAt, "weekday")}, ${formatTimeRange(slotAt)}`,
+          });
+          onOpenChange(false);
+        },
+      },
+    );
   };
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent
         size="lg"
-        title={`Reschedule ${patient.full_name}`}
-        description={`With ${physician.full_name} · currently ${formatTimeRange(appointment.scheduled_at)}`}
+        title={`Reschedule ${appointment.patient.fullName}`}
+        description={`With ${appointment.physician.fullName} · currently ${formatTimeRange(appointment.scheduledAt)}`}
       >
         <div className="space-y-6">
           <DateStrip
@@ -240,13 +254,20 @@ export function RescheduleDialog({
               setSlotAt(null);
             }}
           />
-          <SlotGrid slots={slots} value={slotAt} onChange={setSlotAt} />
+          {loadingSlots ? (
+            <SlotGridSkeleton />
+          ) : (
+            <SlotGrid slots={slots} value={slotAt} onChange={setSlotAt} />
+          )}
+          {error && (
+            <Alert tone="danger" icon={AlertTriangle} title={error.message} />
+          )}
         </div>
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="secondary">Cancel</Button>
           </DialogClose>
-          <Button onClick={confirm} disabled={!slotAt}>
+          <Button onClick={confirm} disabled={!slotAt} loading={isPending}>
             Move appointment
           </Button>
         </DialogFooter>
@@ -261,26 +282,25 @@ export function CancelAppointmentDialog({
   onOpenChange,
 }: AppointmentDialogProps) {
   const [reason, setReason] = useState("");
-  if (!appointment) return null;
-  const patient = patientStore.get(appointment.patient_id)!;
+  const { mutate: cancel, isPending, error } = useStaffCancel();
 
-  const confirm = () => {
-    appointmentStore.update(appointment.id, {
-      status: "cancelled",
-      cancellation_reason: reason.trim() || null,
-      reschedule_needs_review: false,
-      reschedule_review_reason: null,
-    });
-    toast(`${patient.full_name}'s appointment was cancelled`);
-    onOpenChange(false);
-  };
+  const confirm = () =>
+    cancel(
+      { appointmentId: appointment.id, reason: reason.trim() },
+      {
+        onSuccess: () => {
+          toast(`${appointment.patient.fullName}'s appointment was cancelled`);
+          onOpenChange(false);
+        },
+      },
+    );
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent
         size="sm"
         title="Cancel appointment?"
-        description={`${patient.full_name} · ${formatTimeRange(appointment.scheduled_at)} with ${getStaff(appointment.physician_id)?.full_name}`}
+        description={`${appointment.patient.fullName} · ${formatTimeRange(appointment.scheduledAt)} with ${appointment.physician.fullName}`}
       >
         <Field label="Reason" optional>
           {(a11y) => (
@@ -293,11 +313,14 @@ export function CancelAppointmentDialog({
             />
           )}
         </Field>
+        {error && (
+          <Alert tone="danger" icon={AlertTriangle} title={error.message} />
+        )}
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="secondary">Keep it</Button>
           </DialogClose>
-          <Button variant="danger" onClick={confirm}>
+          <Button variant="danger" onClick={confirm} loading={isPending}>
             Cancel appointment
           </Button>
         </DialogFooter>
@@ -314,62 +337,49 @@ export function NewAppointmentDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const all = useAppointments();
   const dates = useMemo(() => bookableDates(), []);
-  const doctorList = physicians();
-  const patients = usePatients();
   const [query, setQuery] = useState("");
-  const [patientId, setPatientId] = useState<string | null>(null);
-  const [physicianId, setPhysicianId] = useState(doctorList[0]!.id);
+  const [patient, setPatient] = useState<PatientSummary | null>(null);
+  const [physicianId, setPhysicianId] = useState("");
   const [date, setDate] = useState(dates[0]!);
   const [slotAt, setSlotAt] = useState<string | null>(null);
 
-  const matches = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const digits = q.replace(/\D/g, "");
-    return patients
-      .filter(
-        (p) =>
-          !q ||
-          p.full_name.toLowerCase().includes(q) ||
-          (digits.length > 2 && p.phone.includes(digits.replace(/^0/, ""))),
-      )
-      .slice(0, 5);
-  }, [patients, query]);
-
-  const slots = physicianSlots(all, physicianId, date, demoNow());
-  const patient = patientId ? patientStore.get(patientId) : undefined;
+  const { data: departments = [] } = useDepartments();
+  const { data: physicians = [] } = usePhysicians();
+  const { data: matches = [], isFetching: searching } = usePatientSearch(query);
+  // Until a doctor is picked, use the first one in the list.
+  const doctorId = physicianId || physicians[0]?.id;
+  const { data: doctorDay = [], isPending: loadingSlots } = usePhysicianDay(
+    doctorId,
+    date,
+  );
+  const { mutate: book, isPending, error, reset: clearError } =
+    useBookForPatient();
+  const slots = openSlots(doctorDay, date, new Date());
+  const typedEnough = query.trim().length >= 2;
 
   const reset = () => {
     setQuery("");
-    setPatientId(null);
+    setPatient(null);
     setSlotAt(null);
+    clearError();
   };
 
   const confirm = () => {
-    if (!patient || !slotAt) return;
-    const physician = getStaff(physicianId)!;
-    appointmentStore.add({
-      id: `apt-new-${crypto.randomUUID()}`,
-      reference_code: newReferenceCode(),
-      patient_id: patient.id,
-      physician_id: physician.id,
-      department_id: physician.department_id!,
-      original_scheduled_at: slotAt,
-      scheduled_at: slotAt,
-      checked_in_at: null,
-      actual_started_at: null,
-      actual_ended_at: null,
-      status: "scheduled",
-      cancellation_reason: null,
-      reschedule_needs_review: false,
-      reschedule_review_reason: null,
-    });
-    toast.success("Appointment booked", {
-      description: `${patient.full_name} with ${physician.full_name}, ${formatDate(slotAt, "weekday")} ${formatTimeRange(slotAt)}`,
-    });
-    reset();
-    onOpenChange(false);
+    if (!patient || !slotAt || !doctorId) return;
+    const physician = physicians.find((p) => p.id === doctorId);
+    book(
+      { patientId: patient.id, physicianId: doctorId, slotAt },
+      {
+        onSuccess: () => {
+          toast.success("Appointment booked", {
+            description: `${patient.fullName} with ${physician?.fullName}, ${formatDate(slotAt, "weekday")} ${formatTimeRange(slotAt)}`,
+          });
+          reset();
+          onOpenChange(false);
+        },
+      },
+    );
   };
 
   return (
@@ -390,10 +400,10 @@ export function NewAppointmentDialog({
             <h3 className="mb-2 text-sm font-medium text-slate-700">Patient</h3>
             {patient ? (
               <div className="flex items-center gap-3 rounded-xl border border-brand-200 bg-brand-50/50 p-3">
-                <Avatar name={patient.full_name} />
+                <Avatar name={patient.fullName} />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-slate-900">
-                    {patient.full_name}
+                    {patient.fullName}
                   </p>
                   <p className="text-xs text-slate-500">
                     {formatPhone(patient.phone)}
@@ -402,7 +412,7 @@ export function NewAppointmentDialog({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setPatientId(null)}
+                  onClick={() => setPatient(null)}
                 >
                   Change
                 </Button>
@@ -422,25 +432,34 @@ export function NewAppointmentDialog({
                     className="h-11 w-full rounded-t-xl bg-transparent pr-3 pl-9 text-sm focus:outline-none"
                   />
                 </div>
-                <ul className="max-h-52 overflow-y-auto p-1.5">
-                  {matches.map((p) => (
-                    <li key={p.id}>
-                      <button
-                        type="button"
-                        onClick={() => setPatientId(p.id)}
-                        className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left hover:bg-slate-50"
-                      >
-                        <Avatar name={p.full_name} size="xs" />
-                        <span className="flex-1 text-sm text-slate-900">
-                          {p.full_name}
-                        </span>
-                        <span className="tabular text-xs text-slate-500">
-                          {formatPhone(p.phone)}
-                        </span>
-                      </button>
+                <ul
+                  className="max-h-52 overflow-y-auto p-1.5"
+                  aria-busy={searching || undefined}
+                >
+                  {!typedEnough && (
+                    <li className="px-2.5 py-3 text-sm text-slate-500">
+                      Type at least 2 letters or digits to search.
                     </li>
-                  ))}
-                  {matches.length === 0 && (
+                  )}
+                  {typedEnough &&
+                    matches.map((p) => (
+                      <li key={p.id}>
+                        <button
+                          type="button"
+                          onClick={() => setPatient(p)}
+                          className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left hover:bg-slate-50"
+                        >
+                          <Avatar name={p.fullName} size="xs" />
+                          <span className="flex-1 text-sm text-slate-900">
+                            {p.fullName}
+                          </span>
+                          <span className="tabular text-xs text-slate-500">
+                            {formatPhone(p.phone)}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  {typedEnough && !searching && matches.length === 0 && (
                     <li className="flex items-center gap-2 px-2.5 py-3 text-sm text-slate-500">
                       <UserPlus className="size-4" aria-hidden />
                       No match. Register the patient from the Patients page
@@ -456,7 +475,7 @@ export function NewAppointmentDialog({
             {(a11y) => (
               <Select
                 {...a11y}
-                value={physicianId}
+                value={doctorId ?? ""}
                 onChange={(e) => {
                   setPhysicianId(e.target.value);
                   setSlotAt(null);
@@ -464,11 +483,11 @@ export function NewAppointmentDialog({
               >
                 {departments.map((d) => (
                   <optgroup key={d.id} label={d.name}>
-                    {doctorList
-                      .filter((p) => p.department_id === d.id)
+                    {physicians
+                      .filter((p) => p.departmentId === d.id)
                       .map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.full_name}
+                          {p.fullName}
                         </option>
                       ))}
                   </optgroup>
@@ -489,8 +508,15 @@ export function NewAppointmentDialog({
                 setSlotAt(null);
               }}
             />
-            <SlotGrid slots={slots} value={slotAt} onChange={setSlotAt} />
+            {loadingSlots ? (
+              <SlotGridSkeleton />
+            ) : (
+              <SlotGrid slots={slots} value={slotAt} onChange={setSlotAt} />
+            )}
           </section>
+          {error && (
+            <Alert tone="danger" icon={AlertTriangle} title={error.message} />
+          )}
         </div>
         <DialogFooter className="sm:items-center sm:justify-between">
           <p className="text-xs text-slate-500">
@@ -506,7 +532,11 @@ export function NewAppointmentDialog({
             <DialogClose asChild>
               <Button variant="secondary">Cancel</Button>
             </DialogClose>
-            <Button onClick={confirm} disabled={!patient || !slotAt}>
+            <Button
+              onClick={confirm}
+              disabled={!patient || !slotAt}
+              loading={isPending}
+            >
               Book appointment
             </Button>
           </div>

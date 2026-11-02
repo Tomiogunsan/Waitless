@@ -1,6 +1,5 @@
-import type { AppointmentStatus } from "@/types/clinic";
-import { BookingError, GENERIC_ERROR_MESSAGE } from "./error";
-import { STATUSES,  } from "./types/interfaces/booking-interface";
+import { fail } from "./error";
+import { toStatus } from "./types/interfaces/booking-interface";
 import { supabase } from "@/config/supabase";
 import type {
   BookAppointmentInput,
@@ -11,15 +10,6 @@ import type {
 } from "@/types/booking";
 
 
-
-function fail(error: {message?:string } | null): never{
-  throw new BookingError(error?.message || GENERIC_ERROR_MESSAGE);
-}
-
-function toStatus(value: string): AppointmentStatus {
-  if (STATUSES.includes(value as AppointmentStatus)) return value as AppointmentStatus;
-  throw new BookingError(GENERIC_ERROR_MESSAGE);
-}
 export async function getDepartments(): Promise<Department[]> {
   const { data, error } = await supabase.from("departments").select("id, name").order("name");
   if (error) fail(error);

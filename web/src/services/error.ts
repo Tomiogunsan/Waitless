@@ -9,3 +9,7 @@ export class BookingError extends Error {}
 export function errorMessage(err: unknown): string {
   return err instanceof AuthError || err instanceof BookingError ? err.message : GENERIC_ERROR_MESSAGE;
 }
+
+export function fail(error: {message?:string } | null): never{
+  throw new BookingError(error?.message || GENERIC_ERROR_MESSAGE);
+}

@@ -32,6 +32,14 @@ export function addDays(date: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Midnight to midnight of a clinic date, as ISO instants for database filters. */
+export function clinicDayRange(date: string): { start: string; end: string } {
+  return {
+    start: atClinicTime(date, "00:00").toISOString(),
+    end: atClinicTime(addDays(date, 1), "00:00").toISOString(),
+  };
+}
+
 /** ISO weekday: Monday = 1 ... Sunday = 7. */
 export function isoWeekday(date: string): number {
   const day = new Date(`${date}T12:00:00Z`).getUTCDay();

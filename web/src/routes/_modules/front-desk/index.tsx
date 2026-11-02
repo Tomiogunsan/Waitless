@@ -14,7 +14,7 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/shared/badge/appointment-status-badge";
 import {
@@ -33,23 +33,33 @@ import PageHeader from "@/shared/page-header/page-header";
 import Segmented from "@/shared/segmented/segmented";
 import StatTile from "@/shared/stat-tile/stat-tile";
 import { cn } from "@/utils/cn";
-import { DEMO_TODAY, demoNow, useDemoNow } from "@/utils/demo-clock";
-import { formatPhone } from "@/utils/format";
+import { formatPhone, phoneMatches } from "@/utils/format";
 import { requireRole } from "@/utils/guards";
-import { isOnDate, newReferenceCode } from "@/utils/scheduling";
 import {
-  atClinicTime,
+  clinicToday,
   formatDate,
   formatDuration,
   formatTime,
   minutesBetween,
 } from "@/utils/time";
-import { getDepartment, getStaff, physicians } from "@/mocks/clinic";
-import { appointmentStore, patientStore, useAppointments } from "@/mocks/store";
+import {
+  useCheckIn,
+  useDayAppointments,
+  useMarkNoShow,
+  usePhysicians,
+} from "@/hooks/use-appointments";
+import { useNow } from "@/hooks/use-now";
 import type { ITableHead, ITableMenuOption } from "@/shared/table/interface";
 import Table from "@/shared/table/table";
 import TableEmptyState from "@/shared/table/table-empty-state";
-import type { Appointment, AppointmentStatus } from "@/types/clinic";
+import type { StaffAppointment } from "@/types/appointment";
+import type { AppointmentStatus } from "@/types/clinic";
+import {
+  FILTER_STATUSES,
+  isDone,
+  type DialogState,
+  type Filter,
+} from "./-constants";
 
 export const Route = createFileRoute("/_modules/front-desk/")({
   beforeLoad: ({ context }) =>
@@ -57,43 +67,23 @@ export const Route = createFileRoute("/_modules/front-desk/")({
   component: FrontDeskPage,
 });
 
-type Filter = "all" | "upcoming" | "waiting" | "with_doctor" | "done";
-
-const FILTER_STATUSES: Record<Filter, AppointmentStatus[] | null> = {
-  all: null,
-  upcoming: ["scheduled"],
-  waiting: ["checked_in"],
-  with_doctor: ["in_progress"],
-  done: ["completed", "cancelled", "no_show"],
-};
-
-const isDone = (a: Appointment) =>
-  a.status === "completed" ||
-  a.status === "cancelled" ||
-  a.status === "no_show";
-
-type DialogState = {
-  kind: "reassign" | "reschedule" | "cancel";
-  appointment: Appointment;
-} | null;
-
 function FrontDeskPage() {
-  const now = useDemoNow();
-  const all = useAppointments();
-  const today = useMemo(
-    () =>
-      all
-        .filter((a) => isOnDate(a.scheduled_at, DEMO_TODAY))
-        .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)),
-    [all],
-  );
+  const now = useNow();
+  const date = useMemo(() => clinicToday(), []);
+  const { data: today = [], isPending, isError } = useDayAppointments(date);
+  const { data: physicians = [] } = usePhysicians();
+  const {
+    mutate: checkIn,
+    isPending: checkingIn,
+    variables: checkingId,
+  } = useCheckIn();
+  const { mutate: markNoShow } = useMarkNoShow();
 
   const [filter, setFilter] = useState<Filter>("all");
   const [doctor, setDoctor] = useState("all");
   const [query, setQuery] = useState("");
   const [dialog, setDialog] = useState<DialogState>(null);
   const [newOpen, setNewOpen] = useState(false);
-  const fresh = useSimulatedRealtimeBooking();
   const navigate = useNavigate();
 
   const counts = useMemo(() => {
@@ -115,53 +105,40 @@ function FrontDeskPage() {
     const q = query.trim().toLowerCase();
     return today.filter((a) => {
       if (statuses && !statuses.includes(a.status)) return false;
-      if (doctor !== "all" && a.physician_id !== doctor) return false;
+      if (doctor !== "all" && a.physician.id !== doctor) return false;
       if (!q) return true;
-      const patient = patientStore.get(a.patient_id)!;
       return (
-        patient.full_name.toLowerCase().includes(q) ||
-        formatPhone(patient.phone)
-          .replace(/\s/g, "")
-          .includes(q.replace(/\s/g, "")) ||
-        a.reference_code.toLowerCase().includes(q)
+        a.patient.fullName.toLowerCase().includes(q) ||
+        phoneMatches(a.patient.phone, q) ||
+        a.reference.toLowerCase().includes(q)
       );
     });
   }, [today, filter, doctor, query]);
 
-  const checkIn = (a: Appointment) => {
-    const patient = patientStore.get(a.patient_id)!;
-    const previous = { status: a.status, checked_in_at: a.checked_in_at };
-    appointmentStore.update(a.id, {
-      status: "checked_in",
-      checked_in_at: now.toISOString(),
+  // The database has no undo for these, so the toasts don't offer one.
+  const handleCheckIn = (a: StaffAppointment) =>
+    checkIn(a.id, {
+      onSuccess: () =>
+        toast.success(`${a.patient.fullName} checked in`, {
+          description: `Added to ${a.physician.fullName}'s queue`,
+        }),
+      onError: (err) => toast.error(err.message),
     });
-    toast.success(`${patient.full_name} checked in`, {
-      description: `Added to ${getStaff(a.physician_id)?.full_name}'s queue`,
-      action: {
-        label: "Undo",
-        onClick: () => appointmentStore.update(a.id, previous),
-      },
-    });
-  };
 
-  const markNoShow = (a: Appointment) => {
-    appointmentStore.update(a.id, { status: "no_show" });
-    toast(`${patientStore.get(a.patient_id)?.full_name} marked as a no-show`, {
-      action: {
-        label: "Undo",
-        onClick: () => appointmentStore.update(a.id, { status: "scheduled" }),
-      },
+  const handleNoShow = (a: StaffAppointment) =>
+    markNoShow(a.id, {
+      onSuccess: () => toast(`${a.patient.fullName} marked as a no-show`),
+      onError: (err) => toast.error(err.message),
     });
-  };
 
-  const isOpen = (a: Appointment) =>
+  const isOpen = (a: StaffAppointment) =>
     a.status === "scheduled" || a.status === "checked_in";
 
-  const menuOptions: ITableMenuOption<Appointment>[] = [
+  const menuOptions: ITableMenuOption<StaffAppointment>[] = [
     {
       menuTitle: "Check in",
       icon: UserCheck,
-      action: checkIn,
+      action: handleCheckIn,
       hide: (a) => a.status !== "scheduled",
     },
     {
@@ -179,9 +156,9 @@ function FrontDeskPage() {
     {
       menuTitle: "Mark as no-show",
       icon: UserX,
-      action: markNoShow,
+      action: handleNoShow,
       hide: (a) => a.status !== "scheduled",
-      disabled: (a) => minutesBetween(a.scheduled_at, now) < 15,
+      disabled: (a) => minutesBetween(a.scheduledAt, now) < 15,
       disabledReason: "after +15 min",
     },
     {
@@ -190,7 +167,7 @@ function FrontDeskPage() {
       action: (a) =>
         void navigate({
           to: "/patients/$patientId",
-          params: { patientId: a.patient_id },
+          params: { patientId: a.patient.id },
         }),
     },
     {
@@ -203,10 +180,10 @@ function FrontDeskPage() {
     },
   ];
 
-  const columns: ITableHead<Appointment>[] = [
+  const columns: ITableHead<StaffAppointment>[] = [
     {
       label: "Time",
-      accessor: "scheduled_at",
+      accessor: "scheduledAt",
       render: (a) => (
         <div>
           <span
@@ -215,14 +192,14 @@ function FrontDeskPage() {
               isDone(a) ? "text-slate-400" : "text-slate-900",
             )}
           >
-            {formatTime(a.scheduled_at)}
+            {formatTime(a.scheduledAt)}
           </span>
-          {a.original_scheduled_at !== a.scheduled_at && (
+          {a.originalScheduledAt !== a.scheduledAt && (
             <span
               className="tabular block text-xs text-slate-400 line-through"
               title="Originally booked time"
             >
-              {formatTime(a.original_scheduled_at)}
+              {formatTime(a.originalScheduledAt)}
             </span>
           )}
         </div>
@@ -230,13 +207,13 @@ function FrontDeskPage() {
     },
     {
       label: "Patient",
-      accessor: "patient_id",
+      accessor: null,
       render: (a) => {
-        const patient = patientStore.get(a.patient_id)!;
+        const { patient } = a;
         return (
           <div className="flex min-w-56 items-center gap-3">
             <Avatar
-              name={patient.full_name}
+              name={patient.fullName}
               className={cn(isDone(a) && "opacity-50")}
             />
             <div className="min-w-0">
@@ -248,25 +225,20 @@ function FrontDeskPage() {
                   isDone(a) ? "text-slate-500" : "text-slate-900",
                 )}
               >
-                {patient.full_name}
+                {patient.fullName}
               </Link>
               <span className="tabular block truncate text-xs text-slate-500">
                 {formatPhone(patient.phone)} ·{" "}
-                <span className="font-mono">{a.reference_code}</span>
+                <span className="font-mono">{a.reference}</span>
               </span>
             </div>
-            {fresh.has(a.id) && (
-              <Badge tone="brand" variant="solid">
-                New
-              </Badge>
-            )}
           </div>
         );
       },
     },
     {
       label: "Doctor",
-      accessor: "physician_id",
+      accessor: null,
       render: (a) => (
         <div className="whitespace-nowrap">
           <span
@@ -275,10 +247,10 @@ function FrontDeskPage() {
               isDone(a) ? "text-slate-500" : "text-slate-700",
             )}
           >
-            {getStaff(a.physician_id)?.full_name}
+            {a.physician.fullName}
           </span>
           <span className="block text-xs text-slate-500">
-            {getDepartment(a.department_id)?.name}
+            {a.department.name}
           </span>
         </div>
       ),
@@ -289,7 +261,7 @@ function FrontDeskPage() {
       render: (a) => (
         <div className="flex flex-col items-start gap-1">
           <StatusBadge status={a.status} />
-          {a.reschedule_needs_review && a.status === "scheduled" && (
+          {a.needsReview && a.status === "scheduled" && (
             <span className="inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap text-amber-700">
               <AlertTriangle className="size-3" aria-hidden /> Needs review
             </span>
@@ -299,7 +271,7 @@ function FrontDeskPage() {
     },
     {
       label: "Waiting",
-      accessor: "checked_in_at",
+      accessor: "checkedInAt",
       render: (a) => <WaitCell appointment={a} now={now} />,
     },
     {
@@ -308,7 +280,12 @@ function FrontDeskPage() {
       align: "right",
       render: (a) =>
         a.status === "scheduled" ? (
-          <Button size="sm" variant="soft" onClick={() => checkIn(a)}>
+          <Button
+            size="sm"
+            variant="soft"
+            loading={checkingIn && checkingId === a.id}
+            onClick={() => handleCheckIn(a)}
+          >
             <UserCheck aria-hidden />
             Check in
           </Button>
@@ -317,16 +294,16 @@ function FrontDeskPage() {
   ];
 
   const needsReview = today.filter(
-    (a) => a.reschedule_needs_review && a.status === "scheduled",
+    (a) => a.needsReview && a.status === "scheduled",
   );
   const avgWait = (() => {
     const waiting = today.filter(
-      (a) => a.status === "checked_in" && a.checked_in_at,
+      (a) => a.status === "checked_in" && a.checkedInAt,
     );
     if (!waiting.length) return 0;
     return (
       waiting.reduce(
-        (sum, a) => sum + minutesBetween(a.checked_in_at!, now),
+        (sum, a) => sum + minutesBetween(a.checkedInAt!, now),
         0,
       ) / waiting.length
     );
@@ -337,7 +314,7 @@ function FrontDeskPage() {
       <PageHeader
         eyebrow={<LiveIndicator label={`Live · ${formatTime(now)}`} />}
         title="Today"
-        description={formatDate(DEMO_TODAY)}
+        description={formatDate(date)}
         actions={
           <Button onClick={() => setNewOpen(true)}>
             <Plus aria-hidden />
@@ -397,11 +374,19 @@ function FrontDeskPage() {
           {needsReview
             .map(
               (a) =>
-                `${patientStore.get(a.patient_id)?.full_name} (${formatTime(a.scheduled_at)}, ${getStaff(a.physician_id)?.full_name})`,
+                `${a.patient.fullName} (${formatTime(a.scheduledAt)}, ${a.physician.fullName})`,
             )
             .join(" · ")}
           . Reschedule or reassign them so the patients aren't kept waiting.
         </Alert>
+      )}
+
+      {isError && (
+        <Alert
+          tone="danger"
+          icon={AlertTriangle}
+          title="We couldn't load today's appointments. Refresh to try again."
+        />
       )}
 
       <DoctorBoard today={today} now={now} />
@@ -437,7 +422,7 @@ function FrontDeskPage() {
           />
         </div>
 
-        <Table<Appointment>
+        <Table<StaffAppointment>
           tableHeads={columns}
           dataTableSource={visible}
           showSearch
@@ -452,19 +437,17 @@ function FrontDeskPage() {
               className="sm:w-52"
             >
               <option value="all">All doctors</option>
-              {physicians().map((p) => (
+              {physicians.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.full_name}
+                  {p.fullName}
                 </option>
               ))}
             </Select>
           }
           showMenu
           menuOptions={menuOptions}
-          rowLabel={(a) => patientStore.get(a.patient_id)!.full_name}
-          rowClassName={(a) =>
-            fresh.has(a.id) ? "animate-fade-in bg-brand-50/70" : undefined
-          }
+          rowLabel={(a) => a.patient.fullName}
+          loading={isPending}
           tableEmptyState={
             <TableEmptyState
               variant="no-results"
@@ -503,11 +486,11 @@ function WaitCell({
   appointment: a,
   now,
 }: {
-  appointment: Appointment;
+  appointment: StaffAppointment;
   now: Date;
 }) {
-  if (a.status === "checked_in" && a.checked_in_at) {
-    const minutes = minutesBetween(a.checked_in_at, now);
+  if (a.status === "checked_in" && a.checkedInAt) {
+    const minutes = minutesBetween(a.checkedInAt, now);
     return (
       <span
         className={cn(
@@ -520,19 +503,19 @@ function WaitCell({
       </span>
     );
   }
-  if (a.status === "in_progress" && a.actual_started_at) {
+  if (a.status === "in_progress" && a.startedAt) {
     return (
       <span className="text-violet-700">
-        In for {formatDuration(minutesBetween(a.actual_started_at, now))}
+        In for {formatDuration(minutesBetween(a.startedAt, now))}
       </span>
     );
   }
-  if (a.status === "completed" && a.checked_in_at && a.actual_started_at) {
+  if (a.status === "completed" && a.checkedInAt && a.startedAt) {
     return (
       <span className="inline-flex items-center gap-1.5 text-slate-400">
         <CheckCircle2 className="size-3.5" aria-hidden />
         Waited{" "}
-        {formatDuration(minutesBetween(a.checked_in_at, a.actual_started_at))}
+        {formatDuration(minutesBetween(a.checkedInAt, a.startedAt))}
       </span>
     );
   }
@@ -540,10 +523,22 @@ function WaitCell({
 }
 
 /** Each doctor at a glance: who they're with, who's waiting, how late they're running. */
-function DoctorBoard({ today, now }: { today: Appointment[]; now: Date }) {
-  const doctors = physicians().filter((p) =>
-    today.some((a) => a.physician_id === p.id),
-  );
+function DoctorBoard({
+  today,
+  now,
+}: {
+  today: StaffAppointment[];
+  now: Date;
+}) {
+  // Each appointment carries its doctor and department, so build the list from them.
+  const doctors = [
+    ...new Map(
+      today.map((a) => [
+        a.physician.id,
+        { ...a.physician, department: a.department.name },
+      ]),
+    ).values(),
+  ];
 
   return (
     <section aria-labelledby="doctors-heading">
@@ -555,14 +550,11 @@ function DoctorBoard({ today, now }: { today: Appointment[]; now: Date }) {
       </h2>
       <div className="relative flex snap-x gap-3 overflow-x-auto pb-2 scrollbar-none">
         {doctors.map((doctor) => {
-          const mine = today.filter((a) => a.physician_id === doctor.id);
+          const mine = today.filter((a) => a.physician.id === doctor.id);
           const current = mine.find((a) => a.status === "in_progress");
           const waiting = mine.filter((a) => a.status === "checked_in").length;
-          const lateBy = current?.actual_started_at
-            ? Math.max(
-                0,
-                minutesBetween(current.scheduled_at, current.actual_started_at),
-              )
+          const lateBy = current?.startedAt
+            ? Math.max(0, minutesBetween(current.scheduledAt, current.startedAt))
             : 0;
           const remaining = mine.filter(
             (a) => a.status === "scheduled" || a.status === "checked_in",
@@ -575,7 +567,7 @@ function DoctorBoard({ today, now }: { today: Appointment[]; now: Date }) {
             >
               <div className="flex items-center gap-3">
                 <span className="relative">
-                  <Avatar name={doctor.full_name} size="md" />
+                  <Avatar name={doctor.fullName} size="md" />
                   <span
                     className={cn(
                       "absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-white",
@@ -586,10 +578,10 @@ function DoctorBoard({ today, now }: { today: Appointment[]; now: Date }) {
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-slate-900">
-                    {doctor.full_name}
+                    {doctor.fullName}
                   </p>
                   <p className="truncate text-xs text-slate-500">
-                    {getDepartment(doctor.department_id!)?.name}
+                    {doctor.department}
                   </p>
                 </div>
               </div>
@@ -598,11 +590,11 @@ function DoctorBoard({ today, now }: { today: Appointment[]; now: Date }) {
                   <>
                     With{" "}
                     <span className="font-medium text-slate-900">
-                      {patientStore.get(current.patient_id)?.full_name}
+                      {current.patient.fullName}
                     </span>{" "}
                     ·{" "}
                     {formatDuration(
-                      minutesBetween(current.actual_started_at!, now),
+                      minutesBetween(current.startedAt!, now),
                     )}
                   </>
                 ) : (
@@ -627,55 +619,4 @@ function DoctorBoard({ today, now }: { today: Appointment[]; now: Date }) {
       </div>
     </section>
   );
-}
-
-let simulatedBookingDone = false;
-
-/**
- * Stands in for a Supabase Realtime INSERT: a patient books online a few
- * seconds after the page opens. Returns the ids to highlight as new.
- */
-function useSimulatedRealtimeBooking(): Set<string> {
-  const [fresh, setFresh] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (simulatedBookingDone) return;
-    const timer = window.setTimeout(() => {
-      simulatedBookingDone = true;
-      const patientId = `pat-live-${crypto.randomUUID()}`;
-      patientStore.add({
-        id: patientId,
-        full_name: "Femi Ojo",
-        phone: "+2348051239876",
-        email: null,
-        created_at: demoNow().toISOString(),
-      });
-      const slotAt = atClinicTime(DEMO_TODAY, "15:40").toISOString();
-      const id = `apt-live-${crypto.randomUUID()}`;
-      appointmentStore.add({
-        id,
-        reference_code: newReferenceCode(),
-        patient_id: patientId,
-        physician_id: "stf-tunde",
-        department_id: "dep-gm",
-        original_scheduled_at: slotAt,
-        scheduled_at: slotAt,
-        checked_in_at: null,
-        actual_started_at: null,
-        actual_ended_at: null,
-        status: "scheduled",
-        cancellation_reason: null,
-        reschedule_needs_review: false,
-        reschedule_review_reason: null,
-      });
-      setFresh(new Set([id]));
-      toast.info("New online booking", {
-        description: "Femi Ojo · 15:40 with Dr. Tunde Bakare",
-      });
-      window.setTimeout(() => setFresh(new Set()), 8000);
-    }, 6000);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  return fresh;
 }
