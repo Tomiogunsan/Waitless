@@ -169,14 +169,14 @@ isOneToOne: false
                   ]
                 },"staff": {
                   Row: {
-                    "deactivated_at": string | null,"department_id": string | null,"full_name": string,"id": string,"is_active": boolean,"role": string
+                    "deactivated_at": string | null,"department_id": string | null,"full_name": string,"id": string,"is_active": boolean,"is_demo_account": boolean,"role": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "deactivated_at"?: string | null,"department_id"?: string | null,"full_name": string,"id": string,"is_active"?: boolean,"role": string
+                    "deactivated_at"?: string | null,"department_id"?: string | null,"full_name": string,"id": string,"is_active"?: boolean,"is_demo_account"?: boolean,"role": string
                   }
                   Update: {
-                    "deactivated_at"?: string | null,"department_id"?: string | null,"full_name"?: string,"id"?: string,"is_active"?: boolean,"role"?: string
+                    "deactivated_at"?: string | null,"department_id"?: string | null,"full_name"?: string,"id"?: string,"is_active"?: boolean,"is_demo_account"?: boolean,"role"?: string
                   }
                   Relationships: [
                     {
@@ -284,7 +284,7 @@ isOneToOne: false
                            },
 "get_staff_directory":
 { Args: Record<PropertyKey, never>; Returns: {
-              "created_at": string,"department_id": string,"email": string,"full_name": string,"id": string,"invite_pending": boolean,"is_active": boolean,"role": string
+              "created_at": string,"department_id": string,"email": string,"full_name": string,"id": string,"invite_pending": boolean,"is_active": boolean,"is_demo_account": boolean,"role": string
             }[]
                            },
 "get_wait_time_summary":

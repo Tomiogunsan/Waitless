@@ -68,3 +68,17 @@ export async function readJson(req: Request): Promise<unknown | Response> {
 export function inviteRedirectUrl(): string | undefined {
   return Deno.env.get("STAFF_INVITE_REDIRECT_URL") ?? undefined;
 }
+
+// Comma-separated domains invites may go to, e.g. "example.com" on the public
+// demo so strangers are never emailed. Unset allows any domain (local Mailpit).
+export function inviteDomainError(email: string): string | null {
+  const allowed = (Deno.env.get("INVITE_ALLOWED_DOMAINS") ?? "")
+    .split(",")
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean);
+  if (allowed.length === 0) return null;
+  const domain = email.split("@").pop()?.toLowerCase() ?? "";
+  return allowed.includes(domain)
+    ? null
+    : `In this demo, invites can only go to ${allowed.map((d) => `@${d}`).join(" or ")} addresses`;
+}

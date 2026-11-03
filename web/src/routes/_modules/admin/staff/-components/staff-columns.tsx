@@ -37,6 +37,9 @@ export function staffColumns({
             >
               {member.fullName}
               {member.id === myId && <Badge tone="brand">You</Badge>}
+              {member.isDemoAccount && member.id !== myId && (
+                <Badge tone="neutral" title="Shared demo login: it can't be changed">Demo</Badge>
+              )}
             </p>
             <p className="truncate text-xs text-slate-500">{member.email}</p>
           </div>

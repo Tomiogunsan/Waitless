@@ -42,10 +42,13 @@ export function dailyPoints(stats: DepartmentDayStats[], days: string[], departm
   });
 }
 
-export function summarize(stats: DepartmentDayStats[]): PeriodSummary {
+// Periods of equal length can hold a different number of weekdays,
+// so volume is compared per clinic day.
+export function summarize(stats: DepartmentDayStats[], clinicDays: number): PeriodSummary {
   const appointments = sum(stats, (s) => s.appointments);
   return {
     appointments,
+    appointmentsPerClinicDay: clinicDays ? appointments / clinicDays : 0,
     avgWaitMinutes: averageWait(stats),
     completionRate: appointments ? sum(stats, (s) => s.completed) / appointments : 0,
     noShowRate: appointments ? sum(stats, (s) => s.noShows) / appointments : 0,

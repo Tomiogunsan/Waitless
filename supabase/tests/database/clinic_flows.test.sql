@@ -11,7 +11,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(77);
+SELECT plan(80);
 
 
 -- =========================================
@@ -1012,6 +1012,42 @@ SELECT is(
     (SELECT COALESCE(recent_minutes::TEXT, 'none') FROM public.get_wait_time_summary()),
     (SELECT val FROM tests.ctx WHERE key = 'recent_wait'),
     'Visitors can see this week''s average wait'
+);
+
+RESET ROLE;
+
+
+-- =========================================
+-- 8. Demo account protection
+-- =========================================
+
+UPDATE public.staff SET is_demo_account = TRUE
+WHERE id = '00000000-0000-0000-0000-0000000000c3';
+
+SELECT tests.authenticate_as('00000000-0000-0000-0000-0000000000a1');
+
+SELECT throws_ok(
+    $$SELECT public.set_staff_active('00000000-0000-0000-0000-0000000000c3', FALSE)$$,
+    'P0001',
+    'Demo accounts can''t be changed. Invite a new staff member to try this.',
+    'An admin cannot deactivate a demo account'
+);
+
+SELECT throws_ok(
+    $$SELECT public.change_staff_role(
+        '00000000-0000-0000-0000-0000000000c3',
+        'physician',
+        (SELECT id FROM public.departments WHERE name = 'Paediatrics'))$$,
+    'P0001',
+    'Demo accounts can''t be changed. Invite a new staff member to try this.',
+    'An admin cannot move a demo account to another department'
+);
+
+SELECT is(
+    (SELECT is_demo_account FROM public.get_staff_directory()
+     WHERE id = '00000000-0000-0000-0000-0000000000c3'),
+    TRUE,
+    'The staff directory reports demo accounts'
 );
 
 RESET ROLE;

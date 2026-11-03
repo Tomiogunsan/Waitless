@@ -4,6 +4,7 @@
 
 import {
   type AdminClients,
+  inviteDomainError,
   inviteRedirectUrl,
   readJson,
   requireAdmin,
@@ -101,6 +102,11 @@ async function resendInvite(
 
   if (authUser.user.email_confirmed_at) {
     return json({ error: "This staff member has already accepted the invite" }, 409);
+  }
+
+  const domainError = inviteDomainError(authUser.user.email);
+  if (domainError) {
+    return json({ error: domainError }, 403);
   }
 
   const { error: inviteError } = await serviceClient.auth.admin

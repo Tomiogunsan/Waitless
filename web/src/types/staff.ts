@@ -8,6 +8,7 @@ export interface StaffMember {
   departmentId: string | null;
   isActive: boolean;
   invitePending: boolean;
+  isDemoAccount: boolean;
   createdAt: string;
 }
 

@@ -1,7 +1,7 @@
 // Invite a staff member by email and assign their role.
 
 
-import { inviteRedirectUrl, readJson, requireAdmin } from "../_shared/admin.ts";
+import { inviteDomainError, inviteRedirectUrl, readJson, requireAdmin } from "../_shared/admin.ts";
 import { json } from "../_shared/http.ts";
 
 const STAFF_ROLES = ["physician", "front_desk", "admin"] as const;
@@ -68,6 +68,11 @@ Deno.serve(async (req) => {
   const invite = parseInvite(body);
   if (typeof invite === "string") {
     return json({ error: invite }, 400);
+  }
+
+  const domainError = inviteDomainError(invite.email);
+  if (domainError) {
+    return json({ error: domainError }, 403);
   }
 
   if (invite.department_id) {

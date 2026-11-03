@@ -13,8 +13,8 @@ export function AnalyticsStats({ now, before }: { now: PeriodSummary; before: Pe
         value={now.appointments.toLocaleString()}
         icon={CalendarCheck2}
         delta={{
-          value: percentChange(now.appointments, before.appointments),
-          label: "vs previous period",
+          value: percentChange(now.appointmentsPerClinicDay, before.appointmentsPerClinicDay),
+          label: "per clinic day vs previous period",
           format: (v) => `${signed(v)}%`,
         }}
       />

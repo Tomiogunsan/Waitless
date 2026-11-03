@@ -11,6 +11,10 @@
 
 SELECT setseed(0.42); -- Stable "random" history between resets.
 
+-- A hosted reset rebuilds the public schema but keeps auth.users, so remove
+-- every login first: visitors' invites and any changed demo passwords go too.
+DELETE FROM auth.users;
+
 
 -- =========================================
 -- Helpers (temporary: gone when the seed finishes)
@@ -162,6 +166,10 @@ WHERE id = 'aaaaaaaa-0000-4000-8000-000000000011';
 UPDATE auth.users
 SET banned_until = now() + INTERVAL '100 years'
 WHERE id = 'aaaaaaaa-0000-4000-8000-000000000011';
+
+-- Visitors share these logins, so they can't be renamed, re-roled or
+-- (de)activated (migration 11). Marked last so Bayo's setup above still runs.
+UPDATE public.staff SET is_demo_account = TRUE;
 
 
 -- =========================================

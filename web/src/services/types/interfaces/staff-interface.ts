@@ -11,6 +11,7 @@ export interface StaffDirectoryRow {
   department_id: string | null;
   is_active: boolean;
   invite_pending: boolean;
+  is_demo_account: boolean;
   created_at: string;
 }
 
@@ -24,6 +25,7 @@ export function toStaffMember(row: StaffDirectoryRow): StaffMember {
     departmentId: row.department_id,
     isActive: row.is_active,
     invitePending: row.invite_pending,
+    isDemoAccount: row.is_demo_account,
     createdAt: row.created_at,
   };
 }

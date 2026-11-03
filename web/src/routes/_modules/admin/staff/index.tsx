@@ -62,6 +62,8 @@ function StaffPage() {
   const count = (role: StaffRole) => members.filter((m) => m.role === role).length;
   const pending = members.filter((m) => m.invitePending && m.isActive).length;
   const isMe = (member: StaffMember) => member.id === myId;
+  // The server refuses changes to your own account and to shared demo logins.
+  const locked = (member: StaffMember) => isMe(member) || member.isDemoAccount;
 
   const handleResend = (member: StaffMember) =>
     resendInvite(member.id, {
@@ -88,7 +90,7 @@ function StaffPage() {
       menuTitle: "Change role",
       icon: UserCog,
       action: (member) => setDialog({ kind: "role", member }),
-      hide: (member) => isMe(member) || !member.isActive,
+      hide: (member) => locked(member) || !member.isActive,
     },
     {
       menuTitle: "Resend invite",
@@ -102,14 +104,14 @@ function StaffPage() {
       tone: "danger",
       separatorBefore: true,
       action: (member) => setDialog({ kind: "deactivate", member }),
-      hide: (member) => isMe(member) || !member.isActive,
+      hide: (member) => locked(member) || !member.isActive,
     },
     {
       menuTitle: "Reactivate",
       icon: UserRoundCheck,
       separatorBefore: true,
       action: handleReactivate,
-      hide: (member) => isMe(member) || member.isActive,
+      hide: (member) => locked(member) || member.isActive,
     },
   ];
 

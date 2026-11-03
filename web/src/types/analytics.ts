@@ -18,6 +18,7 @@ export interface DailyPoint {
 
 export interface PeriodSummary {
   appointments: number;
+  appointmentsPerClinicDay: number;
   avgWaitMinutes: number;
   completionRate: number;
   noShowRate: number;

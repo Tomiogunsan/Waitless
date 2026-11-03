@@ -55,10 +55,8 @@ function AnalyticsPage() {
   const today = useMemo(() => clinicToday(), []);
   const currentFrom = addDays(today, -range);
   const currentTo = addDays(today, -1);
-  const { data: stats = [], isPending, isError } = useAppointmentStats(
-    addDays(today, -range * 2),
-    currentTo,
-  );
+  const previousFrom = addDays(today, -range * 2);
+  const { data: stats = [], isPending, isError } = useAppointmentStats(previousFrom, currentTo);
 
   const selected = departments.find((d) => d.id === department);
   const visible = useMemo(
@@ -72,16 +70,18 @@ function AnalyticsPage() {
     const inView = stats.filter((s) => ids.includes(s.departmentId));
     const current = inView.filter((s) => s.day >= currentFrom);
     const previous = inView.filter((s) => s.day < currentFrom);
+    const currentDays = clinicDaysBetween(currentFrom, currentTo);
+    const previousDays = clinicDaysBetween(previousFrom, addDays(currentFrom, -1));
     return {
-      points: dailyPoints(current, clinicDaysBetween(currentFrom, currentTo), ids),
-      now: summarize(current),
-      before: summarize(previous),
+      points: dailyPoints(current, currentDays, ids),
+      now: summarize(current, currentDays.length),
+      before: summarize(previous, previousDays.length),
       shares: departmentShares(
         stats.filter((s) => s.day >= currentFrom),
         departments,
       ),
     };
-  }, [stats, visible, departments, currentFrom, currentTo]);
+  }, [stats, visible, departments, previousFrom, currentFrom, currentTo]);
 
   const setSearch = (next: Partial<AnalyticsSearch>) =>
     void navigate({ search: (prev) => ({ ...prev, ...next }), replace: true });
