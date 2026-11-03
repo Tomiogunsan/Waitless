@@ -11,7 +11,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(80);
+SELECT plan(81);
 
 
 -- =========================================
@@ -1051,6 +1051,17 @@ SELECT is(
 );
 
 RESET ROLE;
+
+
+-- =========================================
+-- 9. Server-side access for the Edge Functions
+-- =========================================
+
+SELECT ok(
+    has_table_privilege('service_role', 'public.staff', 'SELECT, INSERT')
+    AND has_table_privilege('service_role', 'public.departments', 'SELECT'),
+    'The Edge Functions'' server role can read departments and create staff'
+);
 
 
 SELECT * FROM finish();

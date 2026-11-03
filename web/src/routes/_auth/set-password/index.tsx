@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import Button from "@/shared/button/button";
 import { buttonStyles } from "@/shared/button/button-styles";
 import Field from "@/shared/form-field/form-field";
-import Input from "@/shared/input/input";
+import PasswordInput from "@/shared/password-input/password-input";
 import Badge from "@/shared/badge/badge";
 import { cn } from "@/utils/cn";
 import { useCurrentUser } from "@/utils/session";
@@ -79,7 +79,7 @@ function SetPasswordPage() {
 
       <form noValidate onSubmit={(e) => void handleSubmit(e)} className="mt-8 space-y-4">
         <Field label="New password" error={submitted && passed < PASSWORD_RULES.length ? "Your password doesn't meet all the requirements yet." : undefined}>
-          {(a11y) => <Input {...a11y} type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />}
+          {(a11y) => <PasswordInput {...a11y} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />}
         </Field>
 
         <div aria-live="polite">
@@ -107,7 +107,7 @@ function SetPasswordPage() {
         </div>
 
         <Field label="Confirm password" error={mismatch || (submitted && confirm !== password) ? "Passwords don't match." : undefined}>
-          {(a11y) => <Input {...a11y} type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />}
+          {(a11y) => <PasswordInput {...a11y} autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />}
         </Field>
             {error && <p role="alert" className="text-sm font-medium text-red-600">{error}</p>}
         <Button type="submit" size="lg" className="w-full" loading={saving}>

@@ -4,8 +4,6 @@ import {
   BarChart3,
   ChevronRight,
   ClipboardList,
-  Eye,
-  EyeOff,
   Stethoscope,
   type LucideIcon,
 } from "lucide-react";
@@ -14,6 +12,7 @@ import { toast } from "sonner";
 import Button from "@/shared/button/button";
 import Field from "@/shared/form-field/form-field";
 import Input from "@/shared/input/input";
+import PasswordInput from "@/shared/password-input/password-input";
 import Alert from "@/shared/alert/alert";
 import { isValidEmail } from "@/utils/format";
 import { session } from "@/utils/session";
@@ -61,7 +60,6 @@ function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -113,28 +111,12 @@ function LoginPage() {
         </Field>
         <Field label="Password">
           {(a11y) => (
-            <div className="relative">
-              <Input
-                {...a11y}
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 hover:text-slate-600"
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? (
-                  <EyeOff className="size-4" />
-                ) : (
-                  <Eye className="size-4" />
-                )}
-              </button>
-            </div>
+            <PasswordInput
+              {...a11y}
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           )}
         </Field>
         <div className="flex justify-end">

@@ -4,7 +4,21 @@ Clinic scheduling and lightweight patient records, built so patients spend less 
 
 Patients book online without an account. Front desk staff check them in and watch the day's schedule update live. Physicians work through their own queue and record visit notes. When a consultation runs late, the system moves the physician's later appointments for the rest of the day, or flags them for staff review when moving them isn't safe.
 
-> **Status:** the Supabase backend (database, security rules, scheduling logic, Edge Functions and tests) is complete. Every frontend screen is built and runs on mock data; connecting it to the API and a live demo are next.
+## Live demo
+
+**https://waitless-lake-iota.vercel.app**
+
+Book an appointment as a patient, or choose **Staff sign in** and pick a role. Every demo account uses the password `Waitless@2026`:
+
+| Role | Email |
+|---|---|
+| Admin | `folake@waitless.health` |
+| Front desk | `chidinma@waitless.health` |
+| Physician | `adaeze@waitless.health` |
+
+To look up, reschedule or cancel a booking, use reference `CLN-7F3A9C21B4E8` with phone `0803 123 4567`.
+
+The demo resets every night at 02:00 (Lagos time), so feel free to try everything. Please use made-up details: no real clinic receives these bookings.
 
 ## Features
 
@@ -15,18 +29,18 @@ Patients book online without an account. Front desk staff check them in and watc
 - A booking reference code is used, together with the phone number, to look up, reschedule or cancel a booking.
 
 **Front desk**
-- Live list of the day's appointments (Supabase Realtime).
+- Live list of the day's appointments: changes from other screens appear within a second (Supabase Realtime).
 - Check in patients, mark no-shows, book, reschedule, cancel.
 - Reassign appointments to another physician, one at a time or all of a physician's at once.
 
 **Physicians**
-- Queue of checked-in patients, with each patient's previous visit notes.
+- Queue of checked-in patients, with allergy flags and each patient's previous visit notes, including colleagues'.
 - Start a consultation → save a visit note (symptoms, diagnosis, prescription) → complete it.
 
 **Admins**
 - Invite staff by email and assign roles.
 - Change roles, deactivate and reactivate accounts, resend invites.
-- Appointment data per department for analytics.
+- Analytics dashboard: appointments per day by department, average wait, completion and no-show rates, each compared with the previous period, with CSV export.
 
 ## Scheduling rules
 
@@ -49,6 +63,12 @@ Every rule lives in the database, not the frontend, so it can't be bypassed by c
 - **No direct writes.** Every change to appointments, notes and staff goes through `SECURITY DEFINER` database functions that check the caller's role and the appointment's current state.
 - **Deactivated staff are locked out instantly.** Every permission check ignores inactive accounts, and their login is also banned.
 - Supabase's default table privileges are revoked. This includes `TRUNCATE`, which bypasses Row Level Security.
+
+### A public demo that stays usable
+
+- **Demo accounts are protected in the database.** A trigger refuses any change to their name, role, department or active status, so visitors signed in as the demo admin can't lock others out.
+- **Invites only go to allowed email domains** (`INVITE_ALLOWED_DOMAINS` on the Edge Functions), so the demo can't be used to email strangers.
+- **A nightly reset** ([GitHub Actions](.github/workflows/nightly-demo-reset.yml)) rebuilds the database from the migrations and seed, undoing anything visitors changed.
 
 ### No double-booking, even under load
 
@@ -88,8 +108,9 @@ Appointment lifecycle: `scheduled → checked_in → in_progress → completed`,
 
 - **Database & API:** Supabase (PostgreSQL, PostgREST, Row Level Security, Realtime)
 - **Server logic:** PL/pgSQL functions, Supabase Edge Functions (Deno, TypeScript)
-- **Testing:** pgTAP, 61 end-to-end database tests
+- **Testing:** pgTAP, 80 end-to-end database tests
 - **Frontend:** React 19, TypeScript, Vite, TanStack Router (file-based, type-safe routes and search params), TanStack Query, Tailwind CSS v4, Radix UI, Recharts
+- **Hosting:** Vercel (frontend), Supabase (database, auth, Edge Functions), GitHub Actions (nightly demo reset)
 
 ## Running locally
 
@@ -111,7 +132,7 @@ supabase test db    # runs the database test suite
 
 To run the Edge Functions: `supabase functions serve`.
 
-**Frontend** (currently runs on mock data, no backend needed):
+**Frontend** (connects to the local Supabase started above):
 
 ```bash
 cd web
@@ -122,15 +143,9 @@ npm run dev                  # http://localhost:5173
 
 On the sign-in page, choose **Front desk**, **Physician** or **Admin** to explore each role.
 
-**Demo data:** `supabase db reset` loads [`supabase/seed.sql`](supabase/seed.sql): staff, patients, a busy "today", upcoming bookings and 90 days of history. Every demo account uses the password `Waitless@2026`:
+**Demo data:** `supabase db reset` loads [`supabase/seed.sql`](supabase/seed.sql): staff, patients, a busy "today", upcoming bookings and 180 days of history. The demo logins are the same as in the [live demo](#live-demo).
 
-| Role | Email |
-|---|---|
-| Admin | `folake@waitless.health` |
-| Front desk | `chidinma@waitless.health` |
-| Physician | `adaeze@waitless.health` |
-
-Public booking demo: reference `CLN-7F3A9C21B4E8` with phone `0803 123 4567`.
+To reset a hosted database the same way: `DB_URL="<connection string>" supabase/scripts/reset-demo.sh`.
 
 **In production**, staff join by invitation, so the first admin is created by hand: add a user under **Authentication → Users** in the Supabase dashboard, then run:
 
@@ -143,15 +158,16 @@ VALUES ('<the new user id>', 'Your Name', 'admin');
 
 ```
 web/src/
-├── routes/                # File-based routes (TanStack Router)
+├── routes/                # File-based routes (TanStack Router); page parts in -components/
 │   ├── _public/           # Booking, confirmation, manage booking
 │   ├── _auth/             # Sign in, set password
 │   └── _modules/          # Front desk, physician, admin, patients
+├── services/              # Supabase calls only; row types and mappers in services/types/
+├── hooks/                 # TanStack Query hooks and the Realtime subscription
 ├── shared/                # Reusable UI: one folder per component (interface.ts + component)
-├── components/            # Feature components: booking, front-desk dialogs, charts
-├── utils/                 # Formatting, time zone, scheduling rules, session, guards
-├── mocks/                 # Mock data shaped like the database tables
-└── types/                 # Types mirroring the Supabase schema
+├── utils/                 # Formatting, time zone, scheduling rules, analytics, session, guards
+├── types/                 # App types, plus generated database types
+└── config/                # Supabase client
 
 supabase/
 ├── migrations/
@@ -159,11 +175,19 @@ supabase/
 │   ├── ..._secure_clinic_data.sql                # RLS policies and staff workflow functions
 │   ├── ..._default_physician_working_hours.sql   # Clinic hours and automatic schedules
 │   ├── ..._public_booking.sql                    # Patient booking, lookup, Realtime
-│   └── ..._staff_management.sql                  # Deactivation, role changes, reassignment
+│   ├── ..._staff_management.sql                  # Deactivation, role changes, reassignment
+│   ├── ..._require_joined_physicians.sql         # Only book physicians who accepted their invite
+│   ├── ..._patient_visit_history.sql             # Visit history across physicians
+│   ├── ..._patient_directory.sql                 # Patient list with last and next visit
+│   ├── ..._admin_reporting.sql                   # Staff directory and analytics
+│   ├── ..._wait_time_summary.sql                 # Public average-wait figures
+│   └── ..._protect_demo_accounts.sql             # Demo account protection
 ├── functions/
 │   ├── _shared/          # Admin check and HTTP helpers
 │   ├── invite-staff/     # Invite a staff member by email
 │   └── manage-staff/     # Deactivate, reactivate, resend invite
+├── scripts/
+│   └── reset-demo.sh     # Rebuild a hosted demo database
 └── tests/database/
     └── clinic_flows.test.sql
 ```
@@ -174,6 +198,6 @@ supabase/
 - [x] Public booking with automatic physician assignment
 - [x] Staff invitations and account management
 - [x] End-to-end database tests
-- [x] Frontend screens for every role, on mock data
-- [ ] Connect the frontend to Supabase (auth, queries, Realtime)
-- [ ] Live demo with sample data and demo logins for each role
+- [x] Frontend screens for every role
+- [x] Connect the frontend to Supabase (auth, queries, Realtime)
+- [x] Live demo with sample data and demo logins for each role
